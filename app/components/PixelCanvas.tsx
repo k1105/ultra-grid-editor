@@ -14,6 +14,7 @@ declare global {
     updateCanvasSize?: (widthPercent: number, heightPercent: number) => void;
     updateZoom?: (zoom: number) => void;
     setShowGuides?: (show: boolean) => void;
+    updatePixelGrid?: (newGrid: boolean[][]) => void;
     pixelEditorState?: {
       pixW: number;
       pixH: number;
@@ -362,8 +363,21 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
           }
         };
 
+        // ピクセルグリッド更新時の処理
+        const updatePixelGrid = (newGrid: boolean[][]) => {
+          if (newGrid && newGrid.length > 0 && newGrid[0].length > 0) {
+            // 新しいグリッドサイズに合わせてcols, rowsを更新
+            cols = newGrid[0].length;
+            rows = newGrid.length;
+            grid = newGrid;
+            // グローバルstateに保存
+            window.pixelGrid = grid;
+          }
+        };
+
         // グローバル関数として公開
         window.updateGridSize = updateGridSize;
+        window.updatePixelGrid = updatePixelGrid;
         window.resetCanvas = resetCanvas;
         window.setDrawMode = setDrawMode;
         window.updateCanvasSize = updateCanvasSize;

@@ -10,6 +10,7 @@ declare global {
     updateGridSize?: (size: number) => void;
     setDrawMode?: (mode: "draw" | "erase") => void;
     setShowGuides?: (show: boolean) => void;
+    updatePixelGrid?: (newGrid: boolean[][]) => void;
     pixelEditorState?: {
       pixW: number;
       pixH: number;
@@ -23,7 +24,28 @@ declare global {
       showGuides: boolean;
     };
     resetCanvas?: () => void;
+    pixelGrid?: boolean[][];
   }
+}
+
+// エクスポートデータの型定義
+interface ExportData {
+  version: string;
+  gridInfo: {
+    pixW: number;
+    pixH: number;
+    gapX: number;
+    gapY: number;
+    gridSize: number;
+  };
+  canvasState: {
+    widthPercent: number;
+    heightPercent: number;
+    zoom: number;
+    showGuides: boolean;
+  };
+  pixelData: boolean[][];
+  exportDate: string;
 }
 
 interface EditorControlsProps {
@@ -38,6 +60,7 @@ export default function EditorControls({className}: EditorControlsProps) {
   const [gridSize, setGridSize] = useState(16);
   const [drawMode, setDrawMode] = useState<"draw" | "erase">("draw");
   const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [exportFileName, setExportFileName] = useState("pixel-grid");
 
   // 最大ピクセルサイズの制限
   const MAX_PIXEL_SIZE = 40;
@@ -155,6 +178,110 @@ export default function EditorControls({className}: EditorControlsProps) {
     }
   }, []);
 
+  // エクスポート処理
+  const handleExport = useCallback(() => {
+    const state = window.pixelEditorState;
+    const pixelGrid = window.pixelGrid;
+
+    if (!state || !pixelGrid) {
+      alert("キャンバスデータが見つかりません");
+      return;
+    }
+
+    const exportData: ExportData = {
+      version: "1.0.0",
+      gridInfo: {
+        pixW: state.pixW,
+        pixH: state.pixH,
+        gapX: state.gapX,
+        gapY: state.gapY,
+        gridSize: state.gridSize,
+      },
+      canvasState: {
+        widthPercent: state.canvasWidthPercent,
+        heightPercent: state.canvasHeightPercent,
+        zoom: state.zoom,
+        showGuides: state.showGuides,
+      },
+      pixelData: pixelGrid,
+      exportDate: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${exportFileName}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [exportFileName]);
+
+  // インポート処理
+  const handleImport = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as ExportData;
+
+          // バージョンチェック
+          if (!data.version) {
+            throw new Error("Invalid file format: missing version");
+          }
+
+          // グリッド情報を更新
+          if (data.gridInfo) {
+            setPixW(data.gridInfo.pixW);
+            setPixH(data.gridInfo.pixH);
+            setGapX(data.gridInfo.gapX);
+            setGapY(data.gridInfo.gapY);
+            setGridSize(data.gridInfo.gridSize);
+          }
+
+          // キャンバス状態を更新
+          if (data.canvasState && window.pixelEditorState) {
+            window.pixelEditorState.canvasWidthPercent =
+              data.canvasState.widthPercent;
+            window.pixelEditorState.canvasHeightPercent =
+              data.canvasState.heightPercent;
+            window.pixelEditorState.zoom = data.canvasState.zoom;
+            window.pixelEditorState.showGuides = data.canvasState.showGuides;
+          }
+
+          // ピクセルデータを更新
+          if (data.pixelData && window.pixelGrid) {
+            // グリッドサイズを更新
+            if (window.updateGridSize) {
+              window.updateGridSize(data.gridInfo.gridSize);
+            }
+
+            // ピクセルデータを設定
+            if (window.updatePixelGrid) {
+              window.updatePixelGrid(data.pixelData);
+            }
+          }
+
+          alert("ファイルの読み込みが完了しました");
+        } catch (error) {
+          console.error("Failed to parse JSON file:", error);
+          alert("無効なファイル形式です");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, []);
+
   return (
     <div className={`${styles.controls} ${className || ""}`}>
       <div className={styles.modeButtons}>
@@ -184,6 +311,32 @@ export default function EditorControls({className}: EditorControlsProps) {
         >
           <Icon icon="mdi:refresh" />
         </button>
+      </div>
+
+      {/* Export/Import Group */}
+      <div className={styles.exportImportGroup}>
+        <div className={styles.exportImportLabel}>Export/Import</div>
+        <div className={styles.fileNameInput}>
+          <label>
+            File Name
+            <input
+              type="text"
+              value={exportFileName}
+              onChange={(e) => setExportFileName(e.target.value)}
+              placeholder="pixel-grid"
+            />
+          </label>
+        </div>
+        <div className={styles.exportImportButtons}>
+          <button onClick={handleExport} className={styles.exportButton}>
+            <Icon icon="mdi:export" />
+            Export
+          </button>
+          <button onClick={handleImport} className={styles.importButton}>
+            <Icon icon="mdi:import" />
+            Import
+          </button>
+        </div>
       </div>
 
       {/* Grid Edit Group */}
