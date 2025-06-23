@@ -44,9 +44,54 @@ interface ExportData {
     zoom: number;
     showGuides: boolean;
   };
-  pixelData: boolean[][];
+  pixelData: string[]; // 16進数文字列の配列
   exportDate: string;
 }
+
+// ピクセルデータを16進数に圧縮する関数
+const compressPixelData = (pixelGrid: boolean[][]): string[] => {
+  return pixelGrid.map((row) => {
+    let hexString = "";
+    for (let i = 0; i < row.length; i += 4) {
+      let byte = 0;
+      for (let j = 0; j < 4 && i + j < row.length; j++) {
+        if (row[i + j]) {
+          byte |= 1 << (3 - j);
+        }
+      }
+      hexString += byte.toString(16).padStart(1, "0");
+    }
+    return hexString;
+  });
+};
+
+// 16進数からピクセルデータを復元する関数
+const decompressPixelData = (
+  hexData: string[],
+  gridSize: number
+): boolean[][] => {
+  const pixelGrid: boolean[][] = [];
+
+  for (let row = 0; row < hexData.length; row++) {
+    const hexString = hexData[row];
+    const pixelRow: boolean[] = [];
+
+    for (let i = 0; i < hexString.length; i++) {
+      const byte = parseInt(hexString[i], 16);
+      for (let j = 0; j < 4 && pixelRow.length < gridSize; j++) {
+        pixelRow.push((byte & (1 << (3 - j))) !== 0);
+      }
+    }
+
+    // グリッドサイズに合わせて調整
+    while (pixelRow.length < gridSize) {
+      pixelRow.push(false);
+    }
+    pixelGrid.push(pixelRow);
+  }
+
+  return pixelGrid;
+};
 
 interface EditorControlsProps {
   className?: string;
@@ -203,7 +248,7 @@ export default function EditorControls({className}: EditorControlsProps) {
         zoom: state.zoom,
         showGuides: state.showGuides,
       },
-      pixelData: pixelGrid,
+      pixelData: compressPixelData(pixelGrid),
       exportDate: new Date().toISOString(),
     };
 
@@ -267,7 +312,9 @@ export default function EditorControls({className}: EditorControlsProps) {
 
             // ピクセルデータを設定
             if (window.updatePixelGrid) {
-              window.updatePixelGrid(data.pixelData);
+              window.updatePixelGrid(
+                decompressPixelData(data.pixelData, data.gridInfo.gridSize)
+              );
             }
           }
 
