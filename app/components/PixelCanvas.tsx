@@ -102,15 +102,21 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
           const zoomedMouseY =
             (mouseY - p.height / 2) / currentState.zoom + p.height / 2;
 
+          // プレビューと同じ変形ロジックを適用
+          const effectiveWidth =
+            currentState.canvasWidthPercent > 100
+              ? 100
+              : currentState.canvasWidthPercent;
+          const effectiveHeight =
+            currentState.canvasWidthPercent < 100
+              ? 100
+              : (100 / currentState.canvasWidthPercent) * 100;
+
           // パーセンテージをピクセルサイズに適用
-          const scaledPixW =
-            currentState.pixW * (currentState.canvasWidthPercent / 100);
-          const scaledPixH =
-            currentState.pixH * (currentState.canvasWidthPercent / 100);
-          const scaledGapX =
-            currentState.gapX * (currentState.canvasWidthPercent / 100);
-          const scaledGapY =
-            currentState.gapY * (currentState.canvasWidthPercent / 100);
+          const scaledPixW = currentState.pixW * (effectiveWidth / 100);
+          const scaledPixH = currentState.pixH * (effectiveHeight / 100);
+          const scaledGapX = currentState.gapX * (effectiveWidth / 100);
+          const scaledGapY = currentState.gapY * (effectiveHeight / 100);
 
           const stepX = scaledPixW + scaledGapX;
           const stepY = scaledPixH + scaledGapY;
@@ -153,15 +159,21 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
           p.scale(currentState.zoom);
           p.translate(-p.width / 2, -p.height / 2);
 
+          // プレビューと同じ変形ロジックを適用
+          const effectiveWidth =
+            currentState.canvasWidthPercent > 100
+              ? 100
+              : currentState.canvasWidthPercent;
+          const effectiveHeight =
+            currentState.canvasWidthPercent < 100
+              ? 100
+              : (100 / currentState.canvasWidthPercent) * 100;
+
           // パーセンテージをピクセルサイズに適用
-          const scaledPixW =
-            currentState.pixW * (currentState.canvasWidthPercent / 100);
-          const scaledPixH =
-            currentState.pixH * (currentState.canvasWidthPercent / 100);
-          const scaledGapX =
-            currentState.gapX * (currentState.canvasWidthPercent / 100);
-          const scaledGapY =
-            currentState.gapY * (currentState.canvasWidthPercent / 100);
+          const scaledPixW = currentState.pixW * (effectiveWidth / 100);
+          const scaledPixH = currentState.pixH * (effectiveHeight / 100);
+          const scaledGapX = currentState.gapX * (effectiveWidth / 100);
+          const scaledGapY = currentState.gapY * (effectiveHeight / 100);
 
           const stepX = scaledPixW + scaledGapX;
           const stepY = scaledPixH + scaledGapY;

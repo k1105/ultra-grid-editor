@@ -12,21 +12,15 @@ interface CanvasViewControlsProps {
 export default function CanvasViewControls({
   className,
 }: CanvasViewControlsProps) {
-  const {state, setCanvasWidthPercent, setCanvasHeightPercent, setZoom} =
+  const {state, setCanvasWidthPercent, setZoom, setCanvasHeightPercent} =
     usePixelEditor();
   const [isDistortionExpanded, setIsDistortionExpanded] = useState(false);
 
-  // 幅変更ハンドラー - アスペクト比を維持
+  // 幅変更ハンドラー - widthのみを変更（heightは固定）
   const handleWidthChange = (value: number) => {
-    // 横幅が100%未満の場合は高さを固定（100%）、100%を超える場合は横幅を固定（100%）して高さを計算
-    let newHeightPercent = 100;
-    if (value > 100) {
-      // 横幅が100%を超える場合、横幅を100%に固定して高さを計算
-      newHeightPercent = (100 * 100) / value;
-    }
-
+    // widthのみを変更し、heightは100%のまま固定
     setCanvasWidthPercent(value);
-    setCanvasHeightPercent(newHeightPercent);
+    // heightは変更しない（100%のまま）
   };
 
   // ズーム変更ハンドラー
@@ -53,7 +47,8 @@ export default function CanvasViewControls({
 
   // distortionリセットハンドラー
   const handleDistortionReset = () => {
-    handleWidthChange(100);
+    setCanvasWidthPercent(100);
+    setCanvasHeightPercent(100);
   };
 
   return (
