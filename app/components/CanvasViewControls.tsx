@@ -1,0 +1,193 @@
+"use client";
+
+import {useState} from "react";
+import Image from "next/image";
+import styles from "./PixelCanvas.module.css";
+
+// グローバル関数の型定義
+declare global {
+  interface Window {
+    updateCanvasSize?: (widthPercent: number, heightPercent: number) => void;
+    updateZoom?: (zoom: number) => void;
+    pixelEditorState?: {
+      pixW: number;
+      pixH: number;
+      gapX: number;
+      gapY: number;
+      gridSize: number;
+      drawMode: "draw" | "erase";
+      canvasWidthPercent: number;
+      canvasHeightPercent: number;
+      zoom: number;
+      showGuides: boolean;
+    };
+  }
+}
+
+interface CanvasViewControlsProps {
+  className?: string;
+}
+
+export default function CanvasViewControls({
+  className,
+}: CanvasViewControlsProps) {
+  const [widthPercent, setWidthPercent] = useState(100);
+  const [zoom, setZoom] = useState(1);
+  const [isDistortionExpanded, setIsDistortionExpanded] = useState(false);
+
+  // 幅変更ハンドラー - アスペクト比を維持
+  const handleWidthChange = (value: number) => {
+    setWidthPercent(value);
+
+    // 横幅が100%未満の場合は高さを固定（100%）、100%を超える場合は横幅を固定（100%）して高さを計算
+    let newHeightPercent = 100;
+    if (value > 100) {
+      // 横幅が100%を超える場合、横幅を100%に固定して高さを計算
+      newHeightPercent = (100 * 100) / value;
+    }
+
+    if (window.updateCanvasSize) {
+      window.updateCanvasSize(value, newHeightPercent);
+    }
+    // グローバルstateを更新
+    if (window.pixelEditorState) {
+      window.pixelEditorState.canvasWidthPercent = value;
+      window.pixelEditorState.canvasHeightPercent = newHeightPercent;
+    }
+  };
+
+  // ズーム変更ハンドラー
+  const handleZoomChange = (newZoom: number) => {
+    setZoom(newZoom);
+    if (window.updateZoom) {
+      window.updateZoom(newZoom);
+    }
+  };
+
+  // ズームイン
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoom * 1.2, 5); // 最大5倍
+    handleZoomChange(newZoom);
+  };
+
+  // ズームアウト
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoom / 1.2, 0.1); // 最小0.1倍
+    handleZoomChange(newZoom);
+  };
+
+  // ズームリセット
+  const handleZoomReset = () => {
+    handleZoomChange(1);
+  };
+
+  // distortionリセットハンドラー
+  const handleDistortionReset = () => {
+    handleWidthChange(100);
+  };
+
+  return (
+    <div className={`${styles["canvas-view-controls"]} ${className || ""}`}>
+      {/* ズームコントロール */}
+      <div className={styles["zoom-controls"]}>
+        <div className={styles["zoom-buttons"]}>
+          <button
+            onClick={handleZoomOut}
+            className={`${styles["zoom-button"]} ${styles["zoom-out"]}`}
+          >
+            -
+          </button>
+          <span className={styles["zoom-display"]}>
+            {(zoom * 100).toFixed(0)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            className={`${styles["zoom-button"]} ${styles["zoom-in"]}`}
+          >
+            +
+          </button>
+          <button
+            onClick={handleZoomReset}
+            className={`${styles["zoom-button"]} ${styles["zoom-reset"]}`}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* 変形コントロール（折りたたみ可能） */}
+      <div className={styles["distortion-section"]}>
+        <div
+          className={styles["distortion-header"]}
+          onClick={() => setIsDistortionExpanded(!isDistortionExpanded)}
+        >
+          <span>Distortion</span>
+          <span className={styles["distortion-value"]}>{widthPercent}%</span>
+          <span className={styles["expand-icon"]}>
+            {isDistortionExpanded ? "▼" : "▶"}
+          </span>
+        </div>
+
+        {isDistortionExpanded && (
+          <div className={styles["distortion-content"]}>
+            <div className={styles["width-controls"]}>
+              <div className={styles["distortion-container"]}>
+                <div className={styles["slider-section"]}>
+                  <div className={styles["slider-container"]}>
+                    <span className={styles["slider-label"]}>Squashed</span>
+                    <input
+                      type="range"
+                      min="10"
+                      max="200"
+                      value={widthPercent}
+                      onChange={(e) =>
+                        handleWidthChange(Number(e.target.value))
+                      }
+                      className={styles["distortion-slider"]}
+                    />
+                    <span className={styles["slider-label"]}>Stretched</span>
+                  </div>
+                  <div className={styles["slider-value"]}>{widthPercent}%</div>
+                </div>
+
+                {/* 変形プレビュー */}
+                <div className={styles["preview-section"]}>
+                  <div className={styles["preview-container"]}>
+                    <div
+                      className={styles["preview-wrapper"]}
+                      style={{
+                        width: `${widthPercent > 100 ? 100 : widthPercent}%`,
+                        height: `${
+                          widthPercent < 100 ? 100 : (100 / widthPercent) * 100
+                        }%`,
+                      }}
+                    >
+                      <Image
+                        src="/flakiness.png"
+                        alt="distortion preview"
+                        className={styles["preview-image"]}
+                        width={60}
+                        height={60}
+                        style={{
+                          objectFit: "fill",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resetボタン */}
+              <button
+                onClick={handleDistortionReset}
+                className={styles["distortion-reset"]}
+              >
+                Reset to 100%
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

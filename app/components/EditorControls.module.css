@@ -1,0 +1,113 @@
+.controls {
+  margin: 12px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.modeButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.modeButton {
+  padding: 8px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+}
+
+.modeButton:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.modeButton.active {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.resetButton {
+  padding: 8px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+}
+
+.resetButton:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.controls label {
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #333;
+}
+
+.controls input[type="range"] {
+  width: 100px;
+  cursor: pointer;
+}
+
+.controls select {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.valueDisplay {
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .controls {
+    gap: 0.5rem;
+  }
+
+  .controls label {
+    font-size: 0.7rem;
+  }
+
+  .controls input[type="range"] {
+    width: 80px;
+  }
+}
+
+.gridEditGroup {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 12px 8px 12px;
+  margin-bottom: 1rem;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gridEditLabel {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #374151;
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
