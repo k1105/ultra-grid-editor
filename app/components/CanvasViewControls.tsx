@@ -3,26 +3,7 @@
 import {useState} from "react";
 import Image from "next/image";
 import styles from "./PixelCanvas.module.css";
-
-// グローバル関数の型定義
-declare global {
-  interface Window {
-    updateCanvasSize?: (widthPercent: number, heightPercent: number) => void;
-    updateZoom?: (zoom: number) => void;
-    pixelEditorState?: {
-      pixW: number;
-      pixH: number;
-      gapX: number;
-      gapY: number;
-      gridSize: number;
-      drawMode: "draw" | "erase";
-      canvasWidthPercent: number;
-      canvasHeightPercent: number;
-      zoom: number;
-      showGuides: boolean;
-    };
-  }
-}
+import {usePixelEditor} from "../contexts/PixelEditorContext";
 
 interface CanvasViewControlsProps {
   className?: string;
@@ -31,14 +12,12 @@ interface CanvasViewControlsProps {
 export default function CanvasViewControls({
   className,
 }: CanvasViewControlsProps) {
-  const [widthPercent, setWidthPercent] = useState(100);
-  const [zoom, setZoom] = useState(1);
+  const {state, setCanvasWidthPercent, setCanvasHeightPercent, setZoom} =
+    usePixelEditor();
   const [isDistortionExpanded, setIsDistortionExpanded] = useState(false);
 
   // 幅変更ハンドラー - アスペクト比を維持
   const handleWidthChange = (value: number) => {
-    setWidthPercent(value);
-
     // 横幅が100%未満の場合は高さを固定（100%）、100%を超える場合は横幅を固定（100%）して高さを計算
     let newHeightPercent = 100;
     if (value > 100) {
@@ -46,33 +25,24 @@ export default function CanvasViewControls({
       newHeightPercent = (100 * 100) / value;
     }
 
-    if (window.updateCanvasSize) {
-      window.updateCanvasSize(value, newHeightPercent);
-    }
-    // グローバルstateを更新
-    if (window.pixelEditorState) {
-      window.pixelEditorState.canvasWidthPercent = value;
-      window.pixelEditorState.canvasHeightPercent = newHeightPercent;
-    }
+    setCanvasWidthPercent(value);
+    setCanvasHeightPercent(newHeightPercent);
   };
 
   // ズーム変更ハンドラー
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
-    if (window.updateZoom) {
-      window.updateZoom(newZoom);
-    }
   };
 
   // ズームイン
   const handleZoomIn = () => {
-    const newZoom = Math.min(zoom * 1.2, 5); // 最大5倍
+    const newZoom = Math.min(state.zoom * 1.2, 5); // 最大5倍
     handleZoomChange(newZoom);
   };
 
   // ズームアウト
   const handleZoomOut = () => {
-    const newZoom = Math.max(zoom / 1.2, 0.1); // 最小0.1倍
+    const newZoom = Math.max(state.zoom / 1.2, 0.1); // 最小0.1倍
     handleZoomChange(newZoom);
   };
 
@@ -98,7 +68,7 @@ export default function CanvasViewControls({
             -
           </button>
           <span className={styles["zoom-display"]}>
-            {(zoom * 100).toFixed(0)}%
+            {(state.zoom * 100).toFixed(0)}%
           </span>
           <button
             onClick={handleZoomIn}
@@ -122,7 +92,9 @@ export default function CanvasViewControls({
           onClick={() => setIsDistortionExpanded(!isDistortionExpanded)}
         >
           <span>Distortion</span>
-          <span className={styles["distortion-value"]}>{widthPercent}%</span>
+          <span className={styles["distortion-value"]}>
+            {state.canvasWidthPercent}%
+          </span>
           <span className={styles["expand-icon"]}>
             {isDistortionExpanded ? "▼" : "▶"}
           </span>
@@ -139,7 +111,7 @@ export default function CanvasViewControls({
                       type="range"
                       min="10"
                       max="200"
-                      value={widthPercent}
+                      value={state.canvasWidthPercent}
                       onChange={(e) =>
                         handleWidthChange(Number(e.target.value))
                       }
@@ -147,7 +119,9 @@ export default function CanvasViewControls({
                     />
                     <span className={styles["slider-label"]}>Stretched</span>
                   </div>
-                  <div className={styles["slider-value"]}>{widthPercent}%</div>
+                  <div className={styles["slider-value"]}>
+                    {state.canvasWidthPercent}%
+                  </div>
                 </div>
 
                 {/* 変形プレビュー */}
@@ -156,9 +130,15 @@ export default function CanvasViewControls({
                     <div
                       className={styles["preview-wrapper"]}
                       style={{
-                        width: `${widthPercent > 100 ? 100 : widthPercent}%`,
+                        width: `${
+                          state.canvasWidthPercent > 100
+                            ? 100
+                            : state.canvasWidthPercent
+                        }%`,
                         height: `${
-                          widthPercent < 100 ? 100 : (100 / widthPercent) * 100
+                          state.canvasWidthPercent < 100
+                            ? 100
+                            : (100 / state.canvasWidthPercent) * 100
                         }%`,
                       }}
                     >

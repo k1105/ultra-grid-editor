@@ -3,23 +3,27 @@
 import {useEffect, useRef, useState} from "react";
 import type p5 from "p5";
 import styles from "./PreviewWindows.module.css";
+import {usePixelEditor} from "../contexts/PixelEditorContext";
 
-// グローバル関数の型定義
+// ピクセルエディターの状態型定義
+interface PixelEditorState {
+  pixW: number;
+  pixH: number;
+  gapX: number;
+  gapY: number;
+  gridSize: number;
+  drawMode: "draw" | "erase";
+  canvasWidthPercent: number;
+  canvasHeightPercent: number;
+  zoom: number;
+  showGuides: boolean;
+  pixelGrid: boolean[][];
+}
+
+// グローバル型定義
 declare global {
   interface Window {
-    pixelEditorState?: {
-      pixW: number;
-      pixH: number;
-      gapX: number;
-      gapY: number;
-      gridSize: number;
-      drawMode: "draw" | "erase";
-      canvasWidthPercent: number;
-      canvasHeightPercent: number;
-      zoom: number;
-      showGuides: boolean;
-    };
-    pixelGrid?: boolean[][];
+    previewState?: PixelEditorState;
   }
 }
 
@@ -39,6 +43,7 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const p5InstanceRef = useRef<P5Instance | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const {state} = usePixelEditor();
 
   // クライアントサイドでのみ実行
   useEffect(() => {
@@ -46,9 +51,14 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
   }, []);
 
   // プレビュースケッチ
-  const createPreviewSketch = (p: p5) => {
+  const createPreviewSketch = () => (p: p5) => {
     let cols: number;
     let rows: number;
+
+    // 最新の状態を取得する関数
+    const getCurrentState = (): PixelEditorState => {
+      return window.previewState || state;
+    };
 
     p.setup = () => {
       // キャンバス高さを固定（300px）
@@ -58,46 +68,27 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
       canvas.parent(previewRef.current!);
       p.pixelDensity(1);
 
-      const state = window.pixelEditorState || {
-        pixW: 20,
-        pixH: 20,
-        gapX: 2,
-        gapY: 2,
-        gridSize: 16,
-        drawMode: "draw",
-        canvasWidthPercent: 100,
-        canvasHeightPercent: 100,
-        zoom: 1,
-        showGuides: false,
-      };
-      cols = rows = state.gridSize;
+      const currentState = getCurrentState();
+      cols = rows = currentState.gridSize;
       p.noSmooth();
       p.noStroke();
     };
 
     p.draw = () => {
       p.clear();
-      const state = window.pixelEditorState || {
-        pixW: 20,
-        pixH: 20,
-        gapX: 2,
-        gapY: 2,
-        gridSize: 16,
-        drawMode: "draw",
-        canvasWidthPercent: 100,
-        canvasHeightPercent: 100,
-        zoom: 1,
-        showGuides: false,
-      };
 
-      const grid = window.pixelGrid;
-      if (!grid) return;
+      const currentState = getCurrentState();
+
+      // グリッドサイズが変更された場合は更新
+      if (cols !== currentState.gridSize || rows !== currentState.gridSize) {
+        cols = rows = currentState.gridSize;
+      }
 
       // グリッドの実際のサイズを計算（PixelCanvasのスケーリングは考慮しない）
-      const scaledPixW = state.pixW; // canvasWidthPercentの影響を除外
-      const scaledPixH = state.pixH; // canvasHeightPercentの影響を除外
-      const scaledGapX = state.gapX; // canvasWidthPercentの影響を除外
-      const scaledGapY = state.gapY; // canvasHeightPercentの影響を除外
+      const scaledPixW = currentState.pixW; // canvasWidthPercentの影響を除外
+      const scaledPixH = currentState.pixH; // canvasHeightPercentの影響を除外
+      const scaledGapX = currentState.gapX; // canvasWidthPercentの影響を除外
+      const scaledGapY = currentState.gapY; // canvasHeightPercentの影響を除外
 
       const stepX = scaledPixW + scaledGapX;
       const stepY = scaledPixH + scaledGapY;
@@ -177,7 +168,7 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
               ? offsetY + y * finalPixH
               : offsetY + y * finalStepY;
 
-          if (grid[y][x]) {
+          if (currentState.pixelGrid[y] && currentState.pixelGrid[y][x]) {
             p.fill(0);
           } else {
             p.noFill();
@@ -194,7 +185,7 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
     // p5.jsを動的インポート
     import("p5").then((p5Module) => {
       const p5 = p5Module.default;
-      p5InstanceRef.current = new p5(createPreviewSketch);
+      p5InstanceRef.current = new p5(createPreviewSketch());
     });
 
     // クリーンアップ
@@ -204,7 +195,27 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
         p5InstanceRef.current = null;
       }
     };
-  }, [isClient, percentage]);
+  }, [isClient, percentage]); // stateを依存配列から削除
+
+  // 状態変更時にグローバル変数を更新
+  useEffect(() => {
+    window.previewState = state;
+  }, [state]);
+
+  // プレビューに影響する状態変更のみを監視
+  useEffect(() => {
+    if (p5InstanceRef.current) {
+      // p5スケッチが存在する場合は再描画をトリガー
+      // p.draw()が自動的に呼ばれるため、特別な処理は不要
+    }
+  }, [
+    state.gridSize,
+    state.pixW,
+    state.pixH,
+    state.gapX,
+    state.gapY,
+    state.pixelGrid,
+  ]);
 
   // クライアントサイドでない場合はローディング表示
   if (!isClient) {

@@ -3,6 +3,7 @@
 import {useState, useCallback, useEffect} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
+import {usePixelEditor} from "../contexts/PixelEditorContext";
 
 // グローバル関数の型定義
 declare global {
@@ -98,12 +99,22 @@ interface EditorControlsProps {
 }
 
 export default function EditorControls({className}: EditorControlsProps) {
-  const [pixW, setPixW] = useState(20);
-  const [pixH, setPixH] = useState(20);
-  const [gapX, setGapX] = useState(2);
-  const [gapY, setGapY] = useState(2);
-  const [gridSize, setGridSize] = useState(16);
-  const [drawMode, setDrawMode] = useState<"draw" | "erase">("draw");
+  const {
+    state,
+    setPixW,
+    setPixH,
+    setGapX,
+    setGapY,
+    setDrawMode,
+    setCanvasWidthPercent,
+    setCanvasHeightPercent,
+    setZoom,
+    setShowGuides,
+    setPixelGrid,
+    resetCanvas,
+    updateGridSize,
+  } = usePixelEditor();
+
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [exportFileName, setExportFileName] = useState("pixel-grid");
 
@@ -111,7 +122,7 @@ export default function EditorControls({className}: EditorControlsProps) {
   const MAX_PIXEL_SIZE = 40;
 
   // アスペクト比を計算
-  const aspectRatio = pixW / pixH;
+  const aspectRatio = state.pixW / state.pixH;
 
   // キーボードイベントの監視
   useEffect(() => {
@@ -138,101 +149,89 @@ export default function EditorControls({className}: EditorControlsProps) {
 
   // 現在の表示モードを計算（Shiftキーが押されている場合は反転）
   const displayMode = isShiftPressed
-    ? drawMode === "draw"
+    ? state.drawMode === "draw"
       ? "erase"
       : "draw"
-    : drawMode;
+    : state.drawMode;
 
   // アスペクト比を変更する関数
-  const handleAspectRatioChange = useCallback((ratio: number) => {
-    // アスペクト比に基づいてpixWとpixHを計算
-    // 最大サイズを超えないように制限
-    let newPixW, newPixH;
+  const handleAspectRatioChange = useCallback(
+    (ratio: number) => {
+      // アスペクト比に基づいてpixWとpixHを計算
+      // 最大サイズを超えないように制限
+      let newPixW, newPixH;
 
-    if (ratio >= 1) {
-      // 横長の場合
-      newPixW = Math.min(MAX_PIXEL_SIZE, Math.round(ratio * 20));
-      newPixH = Math.round(newPixW / ratio);
-    } else {
-      // 縦長の場合
-      newPixH = Math.min(MAX_PIXEL_SIZE, Math.round(20 / ratio));
-      newPixW = Math.round(newPixH * ratio);
-    }
+      if (ratio >= 1) {
+        // 横長の場合
+        newPixW = Math.min(MAX_PIXEL_SIZE, Math.round(ratio * 20));
+        newPixH = Math.round(newPixW / ratio);
+      } else {
+        // 縦長の場合
+        newPixH = Math.min(MAX_PIXEL_SIZE, Math.round(20 / ratio));
+        newPixW = Math.round(newPixH * ratio);
+      }
 
-    setPixW(newPixW);
-    setPixH(newPixH);
-  }, []);
-
-  // グローバルstateを更新する関数
-  const updateGlobalState = useCallback(() => {
-    // 既存のキャンバスサイズパーセンテージを保持
-    const existingState = window.pixelEditorState;
-    const canvasWidthPercent = existingState?.canvasWidthPercent ?? 100;
-    const canvasHeightPercent = existingState?.canvasHeightPercent ?? 100;
-
-    window.pixelEditorState = {
-      pixW,
-      pixH,
-      gapX,
-      gapY,
-      gridSize,
-      drawMode,
-      canvasWidthPercent,
-      canvasHeightPercent,
-      zoom: existingState?.zoom ?? 1,
-      showGuides: existingState?.showGuides ?? false,
-    };
-  }, [pixW, pixH, gapX, gapY, gridSize, drawMode]);
-
-  // state変更時にグローバルstateを更新
-  useEffect(() => {
-    updateGlobalState();
-  }, [updateGlobalState]);
+      setPixW(newPixW);
+      setPixH(newPixH);
+    },
+    [setPixW, setPixH]
+  );
 
   // グリッドサイズ変更時の処理をメモ化
-  const handleGridSizeChange = useCallback((size: number) => {
-    setGridSize(size);
-    if (window.updateGridSize) {
-      window.updateGridSize(size);
-    }
-  }, []);
+  const handleGridSizeChange = useCallback(
+    (size: number) => {
+      updateGridSize(size);
+    },
+    [updateGridSize]
+  );
 
   // 描画モード変更ハンドラー
-  const handleDrawModeChange = useCallback((mode: "draw" | "erase") => {
-    setDrawMode(mode);
-    if (window.setDrawMode) {
-      window.setDrawMode(mode);
-    }
-  }, []);
+  const handleDrawModeChange = useCallback(
+    (mode: "draw" | "erase") => {
+      setDrawMode(mode);
+    },
+    [setDrawMode]
+  );
 
   // スライダー変更ハンドラーをメモ化
-  const handleGapXChange = useCallback((value: number) => setGapX(value), []);
-  const handleGapYChange = useCallback((value: number) => setGapY(value), []);
+  const handleGapXChange = useCallback(
+    (value: number) => setGapX(value),
+    [setGapX]
+  );
+  const handleGapYChange = useCallback(
+    (value: number) => setGapY(value),
+    [setGapY]
+  );
+
+  // 数値入力フィールドのハンドラー
+  const handleGapXInputChange = useCallback(
+    (value: string) => {
+      const numValue = parseInt(value) || 0;
+      setGapX(Math.max(0, Math.min(100, numValue))); // 0-100の範囲に制限
+    },
+    [setGapX]
+  );
+
+  const handleGapYInputChange = useCallback(
+    (value: string) => {
+      const numValue = parseInt(value) || 0;
+      setGapY(Math.max(0, Math.min(100, numValue))); // 0-100の範囲に制限
+    },
+    [setGapY]
+  );
 
   // スライダー操作開始時にガイドラインを表示
   const handleSliderStart = useCallback(() => {
-    if (window.setShowGuides) {
-      window.setShowGuides(true);
-    }
-  }, []);
+    setShowGuides(true);
+  }, [setShowGuides]);
 
   // スライダー操作終了時にガイドラインを非表示
   const handleSliderEnd = useCallback(() => {
-    if (window.setShowGuides) {
-      window.setShowGuides(false);
-    }
-  }, []);
+    setShowGuides(false);
+  }, [setShowGuides]);
 
   // エクスポート処理
   const handleExport = useCallback(() => {
-    const state = window.pixelEditorState;
-    const pixelGrid = window.pixelGrid;
-
-    if (!state || !pixelGrid) {
-      alert("キャンバスデータが見つかりません");
-      return;
-    }
-
     const exportData: ExportData = {
       version: "1.0.0",
       gridInfo: {
@@ -248,7 +247,7 @@ export default function EditorControls({className}: EditorControlsProps) {
         zoom: state.zoom,
         showGuides: state.showGuides,
       },
-      pixelData: compressPixelData(pixelGrid),
+      pixelData: compressPixelData(state.pixelGrid),
       exportDate: new Date().toISOString(),
     };
 
@@ -263,7 +262,7 @@ export default function EditorControls({className}: EditorControlsProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [exportFileName]);
+  }, [state, exportFileName]);
 
   // インポート処理
   const handleImport = useCallback(() => {
@@ -290,32 +289,22 @@ export default function EditorControls({className}: EditorControlsProps) {
             setPixH(data.gridInfo.pixH);
             setGapX(data.gridInfo.gapX);
             setGapY(data.gridInfo.gapY);
-            setGridSize(data.gridInfo.gridSize);
+            updateGridSize(data.gridInfo.gridSize);
           }
 
           // キャンバス状態を更新
-          if (data.canvasState && window.pixelEditorState) {
-            window.pixelEditorState.canvasWidthPercent =
-              data.canvasState.widthPercent;
-            window.pixelEditorState.canvasHeightPercent =
-              data.canvasState.heightPercent;
-            window.pixelEditorState.zoom = data.canvasState.zoom;
-            window.pixelEditorState.showGuides = data.canvasState.showGuides;
+          if (data.canvasState) {
+            setCanvasWidthPercent(data.canvasState.widthPercent);
+            setCanvasHeightPercent(data.canvasState.heightPercent);
+            setZoom(data.canvasState.zoom);
+            setShowGuides(data.canvasState.showGuides);
           }
 
           // ピクセルデータを更新
-          if (data.pixelData && window.pixelGrid) {
-            // グリッドサイズを更新
-            if (window.updateGridSize) {
-              window.updateGridSize(data.gridInfo.gridSize);
-            }
-
-            // ピクセルデータを設定
-            if (window.updatePixelGrid) {
-              window.updatePixelGrid(
-                decompressPixelData(data.pixelData, data.gridInfo.gridSize)
-              );
-            }
+          if (data.pixelData) {
+            setPixelGrid(
+              decompressPixelData(data.pixelData, data.gridInfo.gridSize)
+            );
           }
 
           alert("ファイルの読み込みが完了しました");
@@ -327,7 +316,18 @@ export default function EditorControls({className}: EditorControlsProps) {
       reader.readAsText(file);
     };
     input.click();
-  }, []);
+  }, [
+    setPixW,
+    setPixH,
+    setGapX,
+    setGapY,
+    updateGridSize,
+    setCanvasWidthPercent,
+    setCanvasHeightPercent,
+    setZoom,
+    setShowGuides,
+    setPixelGrid,
+  ]);
 
   return (
     <div className={`${styles.controls} ${className || ""}`}>
@@ -348,14 +348,7 @@ export default function EditorControls({className}: EditorControlsProps) {
         >
           <Icon icon="fluent:eraser-24-filled" />
         </button>
-        <button
-          onClick={() => {
-            if (window.resetCanvas) {
-              window.resetCanvas();
-            }
-          }}
-          className={styles.resetButton}
-        >
+        <button onClick={resetCanvas} className={styles.resetButton}>
           <Icon icon="mdi:refresh" />
         </button>
       </div>
@@ -393,8 +386,8 @@ export default function EditorControls({className}: EditorControlsProps) {
           Pixel Aspect Ratio
           <input
             type="range"
-            min="0.25"
-            max="4"
+            min="0.1"
+            max="10"
             step="0.1"
             value={aspectRatio}
             onChange={(e) => handleAspectRatioChange(Number(e.target.value))}
@@ -404,41 +397,61 @@ export default function EditorControls({className}: EditorControlsProps) {
             onTouchEnd={handleSliderEnd}
           />
           <span className={styles.valueDisplay}>
-            {pixW} × {pixH} ({aspectRatio.toFixed(2)}:1)
+            {state.pixW} × {state.pixH} ({aspectRatio.toFixed(2)}:1)
           </span>
         </label>
         <label>
           Gap X
-          <input
-            type="range"
-            min="0"
-            max="20"
-            value={gapX}
-            onChange={(e) => handleGapXChange(Number(e.target.value))}
-            onMouseDown={handleSliderStart}
-            onMouseUp={handleSliderEnd}
-            onTouchStart={handleSliderStart}
-            onTouchEnd={handleSliderEnd}
-          />
+          <div className={styles.gapInputGroup}>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={state.gapX}
+              onChange={(e) => handleGapXChange(Number(e.target.value))}
+              onMouseDown={handleSliderStart}
+              onMouseUp={handleSliderEnd}
+              onTouchStart={handleSliderStart}
+              onTouchEnd={handleSliderEnd}
+            />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={state.gapX}
+              onChange={(e) => handleGapXInputChange(e.target.value)}
+              className={styles.numberInput}
+            />
+          </div>
         </label>
         <label>
           Gap Y
-          <input
-            type="range"
-            min="0"
-            max="20"
-            value={gapY}
-            onChange={(e) => handleGapYChange(Number(e.target.value))}
-            onMouseDown={handleSliderStart}
-            onMouseUp={handleSliderEnd}
-            onTouchStart={handleSliderStart}
-            onTouchEnd={handleSliderEnd}
-          />
+          <div className={styles.gapInputGroup}>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={state.gapY}
+              onChange={(e) => handleGapYChange(Number(e.target.value))}
+              onMouseDown={handleSliderStart}
+              onMouseUp={handleSliderEnd}
+              onTouchStart={handleSliderStart}
+              onTouchEnd={handleSliderEnd}
+            />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={state.gapY}
+              onChange={(e) => handleGapYInputChange(e.target.value)}
+              className={styles.numberInput}
+            />
+          </div>
         </label>
         <label>
           Grid Size
           <select
-            value={gridSize}
+            value={state.gridSize}
             onChange={(e) => handleGridSizeChange(Number(e.target.value))}
           >
             <option value={16}>16 × 16</option>

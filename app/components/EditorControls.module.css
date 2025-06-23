@@ -176,3 +176,25 @@
   margin-bottom: 4px;
   letter-spacing: 0.02em;
 }
+
+.gapInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.numberInput {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
