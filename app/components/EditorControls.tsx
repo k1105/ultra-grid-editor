@@ -94,6 +94,53 @@ const decompressPixelData = (
   return pixelGrid;
 };
 
+// ピクセルグリッドからSVGパスを生成する関数
+const generateSVGPath = (
+  pixelGrid: boolean[][],
+  pixW: number,
+  pixH: number,
+  gapX: number,
+  gapY: number
+): string => {
+  const paths: string[] = [];
+  const rows = pixelGrid.length;
+  const cols = pixelGrid[0].length;
+
+  // 各ピクセルをチェックして、塗りつぶされているピクセルの矩形パスを生成
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (pixelGrid[row][col]) {
+        const x = col * (pixW + gapX);
+        const y = row * (pixH + gapY);
+        const path = `M ${x} ${y} h ${pixW} v ${pixH} h -${pixW} Z`;
+        paths.push(path);
+      }
+    }
+  }
+
+  return paths.join(" ");
+};
+
+// SVGファイルを生成する関数
+const generateSVG = (
+  pixelGrid: boolean[][],
+  pixW: number,
+  pixH: number,
+  gapX: number,
+  gapY: number
+): string => {
+  const rows = pixelGrid.length;
+  const cols = pixelGrid[0].length;
+  const width = cols * (pixW + gapX) - gapX;
+  const height = rows * (pixH + gapY) - gapY;
+  const pathData = generateSVGPath(pixelGrid, pixW, pixH, gapX, gapY);
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+  <path d="${pathData}" fill="black" stroke="none"/>
+</svg>`;
+};
+
 interface EditorControlsProps {
   className?: string;
 }
@@ -264,6 +311,28 @@ export default function EditorControls({className}: EditorControlsProps) {
     URL.revokeObjectURL(url);
   }, [state, exportFileName]);
 
+  // SVGエクスポート処理
+  const handleSVGExport = useCallback(() => {
+    const svgContent = generateSVG(
+      state.pixelGrid,
+      state.pixW,
+      state.pixH,
+      state.gapX,
+      state.gapY
+    );
+    const blob = new Blob([svgContent], {
+      type: "image/svg+xml",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${exportFileName}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [state, exportFileName]);
+
   // インポート処理
   const handleImport = useCallback(() => {
     const input = document.createElement("input");
@@ -371,6 +440,10 @@ export default function EditorControls({className}: EditorControlsProps) {
           <button onClick={handleExport} className={styles.exportButton}>
             <Icon icon="mdi:export" />
             Export
+          </button>
+          <button onClick={handleSVGExport} className={styles.exportButton}>
+            <Icon icon="mdi:export" />
+            SVG Export
           </button>
           <button onClick={handleImport} className={styles.importButton}>
             <Icon icon="mdi:import" />
