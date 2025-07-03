@@ -16,11 +16,14 @@ declare global {
     updateCanvasSize?: (widthPercent: number) => void;
     updateZoom?: (zoom: number) => void;
     setShowGuides?: (show: boolean) => void;
+    undo?: () => void;
+    redo?: () => void;
+    addToHistory?: (grid: boolean[][]) => void;
     pixelEditorState?: {
       pixW: number;
       pixH: number;
-      gapX: number;
       gapY: number;
+      gapX: number;
       gridSize: number;
       drawMode: "draw" | "erase";
       canvasWidthPercent: number;
@@ -52,7 +55,15 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
     setCanvasWidthPercent,
     setZoom,
     setShowGuides,
+    undo,
+    redo,
+    addToHistory,
   } = usePixelEditor();
+
+  console.log("=== PixelCanvas initialized ===");
+  console.log("addToHistory from context:", !!addToHistory);
+  console.log("undo from context:", !!undo);
+  console.log("redo from context:", !!redo);
 
   // クライアントサイドでのみ実行
   useEffect(() => {
@@ -72,6 +83,7 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         let cols: number;
         let rows: number;
         let isDrawing = false;
+        let isDragging = false;
         let lastDrawnCell: {x: number; y: number} | null = null;
 
         // 最新の状態を取得する関数
@@ -145,7 +157,7 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
 
           // 初期グリッド
           cols = rows = state.gridSize;
-          grid = [...state.pixelGrid]; // 配列のコピーを作成
+          grid = state.pixelGrid.map((row) => [...row]); // ディープコピーを作成
           p.pixelDensity(1);
         };
 
@@ -214,6 +226,7 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
           const cell = getGridCell(p.mouseX, p.mouseY);
           if (cell) {
             isDrawing = true;
+            isDragging = false; // ドラッグ開始フラグをリセット
 
             const currentState = getCurrentState();
 
@@ -226,7 +239,22 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
 
             // 一時的なモードでセルを描画（window.pixelEditorStateは変更しない）
             grid[cell.y][cell.x] = effectiveMode === "draw";
-            setPixelGrid([...grid]);
+            // ディープコピーを作成してsetPixelGridに渡す
+            const newGrid = grid.map((row) => [...row]);
+            setPixelGrid(newGrid);
+            // 単一クリックの場合は履歴に追加
+            console.log("=== Mouse Pressed ===");
+            console.log("Cell:", cell);
+            console.log("Effective mode:", effectiveMode);
+            console.log("Adding to history for single click");
+            console.log("window.addToHistory exists:", !!window.addToHistory);
+            if (window.addToHistory) {
+              console.log("Calling window.addToHistory...");
+              window.addToHistory(newGrid);
+              console.log("window.addToHistory called successfully");
+            } else {
+              console.log("window.addToHistory is not available");
+            }
             lastDrawnCell = {x: cell.x, y: cell.y};
           }
         };
@@ -234,6 +262,7 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         // マウスドラッグで描画継続
         p.mouseDragged = (event: MouseEvent) => {
           if (isDrawing) {
+            isDragging = true; // ドラッグ開始フラグを設定
             const cell = getGridCell(p.mouseX, p.mouseY);
             if (cell) {
               const currentState = getCurrentState();
@@ -252,7 +281,14 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
                   (cell.x !== lastDrawnCell.x || cell.y !== lastDrawnCell.y))
               ) {
                 grid[cell.y][cell.x] = effectiveMode === "draw";
-                setPixelGrid([...grid]);
+                // ディープコピーを作成してsetPixelGridに渡す
+                const newGrid = grid.map((row) => [...row]);
+                setPixelGrid(newGrid);
+                // ドラッグ中は履歴に追加しない（マウスリリース時に追加）
+                console.log("=== Mouse Dragged ===");
+                console.log("Cell:", cell);
+                console.log("Effective mode:", effectiveMode);
+                console.log("Not adding to history during drag");
                 lastDrawnCell = {x: cell.x, y: cell.y};
               }
             }
@@ -261,7 +297,29 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
 
         // マウスリリースで描画終了
         p.mouseReleased = () => {
+          console.log("=== Mouse Released ===");
+          console.log("isDrawing:", isDrawing);
+          console.log("isDragging:", isDragging);
+
+          if (isDrawing && isDragging) {
+            // ドラッグが発生した場合のみ履歴に追加
+            const currentGrid = grid.map((row) => [...row]);
+            console.log("Adding to history for drag operation");
+            console.log("window.addToHistory exists:", !!window.addToHistory);
+            if (window.addToHistory) {
+              console.log("Calling window.addToHistory for drag...");
+              window.addToHistory(currentGrid);
+              console.log("window.addToHistory called successfully for drag");
+            } else {
+              console.log("window.addToHistory is not available for drag");
+            }
+          } else if (isDrawing && !isDragging) {
+            console.log("Single click - history already added in mousePressed");
+          } else {
+            console.log("No drawing occurred");
+          }
           isDrawing = false;
+          isDragging = false;
           lastDrawnCell = null;
         };
 
@@ -275,8 +333,8 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
             cols = newGrid[0].length;
             rows = newGrid.length;
             grid = newGrid;
-            // グローバルstateに保存
-            setPixelGrid(grid);
+            // グローバルstateに保存しない（無限ループを防ぐ）
+            window.pixelGrid = newGrid;
           }
         };
         window.resetCanvas = resetCanvas;
@@ -284,8 +342,16 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         window.updateCanvasSize = setCanvasWidthPercent;
         window.updateZoom = setZoom;
         window.setShowGuides = setShowGuides;
+        window.undo = undo;
+        window.redo = redo;
+        window.addToHistory = addToHistory;
         window.pixelEditorState = state;
         window.pixelGrid = grid;
+
+        console.log("=== Global functions set ===");
+        console.log("window.addToHistory set:", !!window.addToHistory);
+        console.log("window.undo set:", !!window.undo);
+        console.log("window.redo set:", !!window.redo);
       };
 
       // p5インスタンスを作成
@@ -308,10 +374,18 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
     }
   }, [state.gridSize]);
 
-  // ピクセルグリッドが外部から変更された場合の処理
+  // ピクセルグリッドが外部から変更された場合の処理（Undo/Redo用）
   useEffect(() => {
-    if (p5InstanceRef.current && window.updatePixelGrid) {
-      window.updatePixelGrid(state.pixelGrid);
+    if (p5InstanceRef.current && window.updatePixelGrid && window.pixelGrid) {
+      // グリッドの内容が実際に変更された場合のみ更新
+      const currentGrid = window.pixelGrid;
+      if (
+        currentGrid.length !== state.pixelGrid.length ||
+        currentGrid[0]?.length !== state.pixelGrid[0]?.length ||
+        JSON.stringify(currentGrid) !== JSON.stringify(state.pixelGrid)
+      ) {
+        window.updatePixelGrid(state.pixelGrid);
+      }
     }
   }, [state.pixelGrid]);
 

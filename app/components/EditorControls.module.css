@@ -216,3 +216,69 @@
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
+
+.undoRedoGroup {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 12px 8px 12px;
+  margin-bottom: 1rem;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.undoRedoLabel {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #374151;
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+
+.undoRedoButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.undoButton,
+.redoButton {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.undoButton:hover:not(.disabled) {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: #fffbeb;
+}
+
+.redoButton:hover:not(.disabled) {
+  border-color: #10b981;
+  color: #10b981;
+  background: #f0fdf4;
+}
+
+.undoButton.disabled,
+.redoButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #d1d5db;
+}
+
+.resetButtonContainer {
+  margin-top: auto;
+}

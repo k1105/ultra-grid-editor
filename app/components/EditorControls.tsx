@@ -49,6 +49,10 @@ export default function EditorControls({className}: EditorControlsProps) {
     setPixelGrid,
     resetCanvas,
     updateGridSize,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = usePixelEditor();
 
   const [isShiftPressed, setIsShiftPressed] = useState(false);
@@ -239,6 +243,35 @@ export default function EditorControls({className}: EditorControlsProps) {
         >
           <Icon icon="fluent:eraser-24-filled" />
         </button>
+      </div>
+
+      {/* Undo/Redo Group */}
+      <div className={styles.undoRedoGroup}>
+        <div className={styles.undoRedoLabel}>History</div>
+        <div className={styles.undoRedoButtons}>
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className={`${styles.undoButton} ${
+              !canUndo ? styles.disabled : ""
+            }`}
+            title="Undo (Ctrl+Z / Cmd+Z)"
+          >
+            <Icon icon="mdi:undo" />
+            Undo
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className={`${styles.redoButton} ${
+              !canRedo ? styles.disabled : ""
+            }`}
+            title="Redo (Ctrl+Shift+Z / Cmd+Shift+Z)"
+          >
+            <Icon icon="mdi:redo" />
+            Redo
+          </button>
+        </div>
       </div>
 
       {/* Export/Import Group */}

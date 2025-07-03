@@ -6,6 +6,7 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useEffect,
 } from "react";
 
 // ピクセルエディターの状態型定義
@@ -21,6 +22,17 @@ interface PixelEditorState {
   zoom: number;
   showGuides: boolean;
   pixelGrid: boolean[][];
+}
+
+// 履歴の型定義
+interface HistoryState {
+  changes: Array<{
+    x: number;
+    y: number;
+    value: boolean;
+  }>;
+  gridSize: number;
+  timestamp: number;
 }
 
 // コンテキストの型定義
@@ -39,6 +51,11 @@ interface PixelEditorContextType {
   setPixelGrid: (grid: boolean[][]) => void;
   resetCanvas: () => void;
   updateGridSize: (size: number) => void;
+  undo: () => void;
+  redo: () => void;
+  addToHistory: (grid: boolean[][]) => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 // コンテキストの作成
@@ -73,6 +90,215 @@ interface PixelEditorProviderProps {
 
 export function PixelEditorProvider({children}: PixelEditorProviderProps) {
   const [state, setState] = useState<PixelEditorState>(initialState);
+  const [history, setHistory] = useState<HistoryState[]>([
+    {
+      changes: [],
+      gridSize: initialState.gridSize,
+      timestamp: Date.now(),
+    },
+  ]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [isUndoRedoAction, setIsUndoRedoAction] = useState(false);
+
+  const MAX_HISTORY_SIZE = 20;
+
+  // 2つのグリッド間の差分を計算する関数
+  const calculateChanges = (
+    oldGrid: boolean[][],
+    newGrid: boolean[][]
+  ): Array<{x: number; y: number; value: boolean}> => {
+    const changes: Array<{x: number; y: number; value: boolean}> = [];
+
+    for (let y = 0; y < newGrid.length; y++) {
+      for (let x = 0; x < newGrid[y].length; x++) {
+        if (oldGrid[y]?.[x] !== newGrid[y][x]) {
+          changes.push({
+            x,
+            y,
+            value: newGrid[y][x],
+          });
+        }
+      }
+    }
+
+    return changes;
+  };
+
+  // 履歴に状態を追加する関数
+  const addToHistory = useCallback(
+    (pixelGrid: boolean[][]) => {
+      if (isUndoRedoAction) return; // Undo/Redo操作中は履歴に追加しない
+
+      // 現在のグリッドと新しいグリッドの差分を計算
+      const currentGrid = state.pixelGrid;
+      const changes = calculateChanges(currentGrid, pixelGrid);
+
+      // 変更がない場合は履歴に追加しない
+      if (changes.length === 0) {
+        console.log("=== No changes detected, skipping history ===");
+        return;
+      }
+
+      const newHistoryState: HistoryState = {
+        changes,
+        gridSize: state.gridSize,
+        timestamp: Date.now(),
+      };
+
+      console.log("=== addToHistory called ===");
+      console.log("Current history length:", history.length);
+      console.log("Current history index:", historyIndex);
+      console.log("isUndoRedoAction:", isUndoRedoAction);
+      console.log("Changes count:", changes.length);
+      console.log("Changes:", changes);
+
+      setHistory((prevHistory) => {
+        console.log("=== setHistory callback ===");
+        console.log("prevHistory length:", prevHistory.length);
+        console.log("current historyIndex:", historyIndex);
+
+        // 現在のインデックスより後ろの履歴を削除
+        const trimmedHistory = prevHistory.slice(0, historyIndex + 1);
+        console.log("trimmedHistory length:", trimmedHistory.length);
+
+        // 新しい履歴を追加
+        const newHistory = [...trimmedHistory, newHistoryState];
+        console.log("newHistory length:", newHistory.length);
+
+        // 最大サイズを超えた場合、古い履歴を削除
+        if (newHistory.length > MAX_HISTORY_SIZE) {
+          const trimmedNewHistory = newHistory.slice(-MAX_HISTORY_SIZE);
+          setHistoryIndex(MAX_HISTORY_SIZE - 1);
+          console.log("History trimmed, new length:", trimmedNewHistory.length);
+          return trimmedNewHistory;
+        }
+
+        const newIndex = newHistory.length - 1;
+        console.log("Setting history index to:", newIndex);
+        setHistoryIndex(newIndex);
+        console.log(
+          "History updated, new length:",
+          newHistory.length,
+          "new index:",
+          newIndex
+        );
+        console.log(
+          "Current history data:",
+          newHistory.map((h, i) => ({
+            index: i,
+            gridSize: h.gridSize,
+            changesCount: h.changes.length,
+            timestamp: new Date(h.timestamp).toLocaleTimeString(),
+          }))
+        );
+        console.log("=== Returning newHistory ===");
+        return newHistory;
+      });
+    },
+    [historyIndex, isUndoRedoAction, state.gridSize, state.pixelGrid]
+  );
+
+  // 差分を適用してグリッドを復元する関数
+  const applyChanges = (
+    baseGrid: boolean[][],
+    changes: Array<{x: number; y: number; value: boolean}>
+  ): boolean[][] => {
+    const newGrid = baseGrid.map((row) => [...row]);
+    changes.forEach((change) => {
+      if (newGrid[change.y] && newGrid[change.y][change.x] !== undefined) {
+        newGrid[change.y][change.x] = change.value;
+      }
+    });
+    return newGrid;
+  };
+
+  // Undo機能
+  const undo = useCallback(() => {
+    console.log("=== undo called ===");
+    console.log("Current history index:", historyIndex);
+    console.log("History length:", history.length);
+    console.log("Can undo:", historyIndex > 0);
+
+    if (historyIndex > 0) {
+      setIsUndoRedoAction(true);
+      const currentState = history[historyIndex];
+      console.log("Undoing changes:", currentState.changes);
+
+      // 現在のグリッドから変更を逆適用
+      const restoredGrid = applyChanges(
+        state.pixelGrid,
+        currentState.changes.map((change) => ({
+          ...change,
+          value: !change.value, // 値を反転
+        }))
+      );
+
+      console.log(
+        "Restored grid dimensions:",
+        restoredGrid.length,
+        "x",
+        restoredGrid[0]?.length
+      );
+      setState((prev) => ({
+        ...prev,
+        pixelGrid: restoredGrid,
+      }));
+      setHistoryIndex((prev) => prev - 1);
+      setIsUndoRedoAction(false);
+    }
+  }, [history, historyIndex, state.pixelGrid]);
+
+  // Redo機能
+  const redo = useCallback(() => {
+    console.log("=== redo called ===");
+    console.log("Current history index:", historyIndex);
+    console.log("History length:", history.length);
+    console.log("Can redo:", historyIndex < history.length - 1);
+
+    if (historyIndex < history.length - 1) {
+      setIsUndoRedoAction(true);
+      const nextState = history[historyIndex + 1];
+      console.log("Redoing changes:", nextState.changes);
+
+      // 現在のグリッドに変更を適用
+      const restoredGrid = applyChanges(state.pixelGrid, nextState.changes);
+
+      console.log(
+        "Restored grid dimensions:",
+        restoredGrid.length,
+        "x",
+        restoredGrid[0]?.length
+      );
+      setState((prev) => ({
+        ...prev,
+        pixelGrid: restoredGrid,
+      }));
+      setHistoryIndex((prev) => prev + 1);
+      setIsUndoRedoAction(false);
+    }
+  }, [history, historyIndex, state.pixelGrid]);
+
+  // キーボードショートカットの処理
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const cmdOrCtrl = isMac ? event.metaKey : event.ctrlKey;
+
+      if (cmdOrCtrl && event.key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          // Cmd+Shift+Z または Ctrl+Shift+Z (Redo)
+          redo();
+        } else {
+          // Cmd+Z または Ctrl+Z (Undo)
+          undo();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
 
   // 状態更新関数
   const setPixW = useCallback((value: number) => {
@@ -91,13 +317,22 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     setState((prev) => ({...prev, gapY: value}));
   }, []);
 
-  const setGridSize = useCallback((value: number) => {
-    setState((prev) => ({
-      ...prev,
-      gridSize: value,
-      pixelGrid: initializeGrid(value),
-    }));
-  }, []);
+  const setGridSize = useCallback(
+    (value: number) => {
+      setState((prev) => {
+        const newGrid = initializeGrid(value);
+        if (!isUndoRedoAction) {
+          addToHistory(newGrid);
+        }
+        return {
+          ...prev,
+          gridSize: value,
+          pixelGrid: newGrid,
+        };
+      });
+    },
+    [addToHistory, isUndoRedoAction]
+  );
 
   const setDrawMode = useCallback((mode: "draw" | "erase") => {
     setState((prev) => ({...prev, drawMode: mode}));
@@ -120,23 +355,40 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
   }, []);
 
   const setPixelGrid = useCallback((grid: boolean[][]) => {
-    setState((prev) => ({...prev, pixelGrid: grid}));
+    setState((prev) => {
+      return {...prev, pixelGrid: grid};
+    });
   }, []);
 
   const resetCanvas = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      pixelGrid: initializeGrid(prev.gridSize),
-    }));
-  }, []);
+    setState((prev) => {
+      const newGrid = initializeGrid(prev.gridSize);
+      if (!isUndoRedoAction) {
+        addToHistory(newGrid);
+      }
+      return {
+        ...prev,
+        pixelGrid: newGrid,
+      };
+    });
+  }, [addToHistory, isUndoRedoAction]);
 
-  const updateGridSize = useCallback((size: number) => {
-    setState((prev) => ({
-      ...prev,
-      gridSize: size,
-      pixelGrid: initializeGrid(size),
-    }));
-  }, []);
+  const updateGridSize = useCallback(
+    (size: number) => {
+      setState((prev) => {
+        const newGrid = initializeGrid(size);
+        if (!isUndoRedoAction) {
+          addToHistory(newGrid);
+        }
+        return {
+          ...prev,
+          gridSize: size,
+          pixelGrid: newGrid,
+        };
+      });
+    },
+    [addToHistory, isUndoRedoAction]
+  );
 
   const contextValue: PixelEditorContextType = {
     state,
@@ -153,8 +405,25 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     setPixelGrid,
     resetCanvas,
     updateGridSize,
+    undo,
+    redo,
+    addToHistory,
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < history.length - 1,
   };
 
+  // historyIndexの変更を監視
+  useEffect(() => {
+    console.log("=== History Index Changed ===");
+    console.log("New history index:", historyIndex);
+    console.log("History length:", history.length);
+  }, [historyIndex, history.length]);
+
+  // デバッグ用：canUndo/canRedoの状態をログ出力
+  console.log("=== Context State ===");
+  console.log("History length:", history.length);
+  console.log("History index:", historyIndex);
+  console.log("canUndo:", historyIndex > 0);
   return (
     <PixelEditorContext.Provider value={contextValue}>
       {children}
