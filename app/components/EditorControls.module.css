@@ -35,19 +35,37 @@
 }
 
 .resetButton {
+  width: 100%;
   padding: 8px;
-  border: 2px solid #d1d5db;
+  border: 2px solid #dc2626;
   border-radius: 4px;
-  background: white;
+  background: #fef2f2;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: #dc2626;
+  font-weight: 500;
 }
 
 .resetButton:hover {
-  border-color: #ef4444;
-  color: #ef4444;
+  border-color: #b91c1c;
+  color: #b91c1c;
+  background: #fee2e2;
+  transform: scale(1.05);
+}
+
+.resetButton:active {
+  transform: scale(0.95);
+}
+
+.resetGroup {
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 1rem;
   background: #fef2f2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .controls label {

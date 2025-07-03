@@ -416,9 +416,6 @@ export default function EditorControls({className}: EditorControlsProps) {
         >
           <Icon icon="fluent:eraser-24-filled" />
         </button>
-        <button onClick={resetCanvas} className={styles.resetButton}>
-          <Icon icon="mdi:refresh" />
-        </button>
       </div>
 
       {/* Export/Import Group */}
@@ -527,6 +524,14 @@ export default function EditorControls({className}: EditorControlsProps) {
             <option value={64}>64 × 64</option>
           </select>
         </label>
+      </div>
+
+      {/* Reset Group - Separated from drawing tools */}
+
+      <div className={styles.resetButtonContainer}>
+        <button onClick={resetCanvas} className={styles.resetButton}>
+          Reset Canvas
+        </button>
       </div>
     </div>
   );
