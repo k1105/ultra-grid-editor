@@ -4,7 +4,7 @@ import {useState, useCallback, useEffect} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
-import JSZip from "jszip";
+import {exportToZip, importFromFile} from "../utils/exportImport";
 
 // グローバル関数の型定義
 declare global {
@@ -29,118 +29,6 @@ declare global {
     pixelGrid?: boolean[][];
   }
 }
-
-// エクスポートデータの型定義
-interface ExportData {
-  version: string;
-  gridInfo: {
-    pixW: number;
-    pixH: number;
-    gapX: number;
-    gapY: number;
-    gridSize: number;
-  };
-  canvasState: {
-    widthPercent: number;
-    heightPercent: number;
-    zoom: number;
-    showGuides: boolean;
-  };
-  pixelData: string[]; // 16進数文字列の配列
-  exportDate: string;
-}
-
-// ピクセルデータを16進数に圧縮する関数
-const compressPixelData = (pixelGrid: boolean[][]): string[] => {
-  return pixelGrid.map((row) => {
-    let hexString = "";
-    for (let i = 0; i < row.length; i += 4) {
-      let byte = 0;
-      for (let j = 0; j < 4 && i + j < row.length; j++) {
-        if (row[i + j]) {
-          byte |= 1 << (3 - j);
-        }
-      }
-      hexString += byte.toString(16).padStart(1, "0");
-    }
-    return hexString;
-  });
-};
-
-// 16進数からピクセルデータを復元する関数
-const decompressPixelData = (
-  hexData: string[],
-  gridSize: number
-): boolean[][] => {
-  const pixelGrid: boolean[][] = [];
-
-  for (let row = 0; row < hexData.length; row++) {
-    const hexString = hexData[row];
-    const pixelRow: boolean[] = [];
-
-    for (let i = 0; i < hexString.length; i++) {
-      const byte = parseInt(hexString[i], 16);
-      for (let j = 0; j < 4 && pixelRow.length < gridSize; j++) {
-        pixelRow.push((byte & (1 << (3 - j))) !== 0);
-      }
-    }
-
-    // グリッドサイズに合わせて調整
-    while (pixelRow.length < gridSize) {
-      pixelRow.push(false);
-    }
-    pixelGrid.push(pixelRow);
-  }
-
-  return pixelGrid;
-};
-
-// ピクセルグリッドからSVGパスを生成する関数
-const generateSVGPath = (
-  pixelGrid: boolean[][],
-  pixW: number,
-  pixH: number,
-  gapX: number,
-  gapY: number
-): string => {
-  const paths: string[] = [];
-  const rows = pixelGrid.length;
-  const cols = pixelGrid[0].length;
-
-  // 各ピクセルをチェックして、塗りつぶされているピクセルの矩形パスを生成
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      if (pixelGrid[row][col]) {
-        const x = col * (pixW + gapX);
-        const y = row * (pixH + gapY);
-        const path = `M ${x} ${y} h ${pixW} v ${pixH} h -${pixW} Z`;
-        paths.push(path);
-      }
-    }
-  }
-
-  return paths.join(" ");
-};
-
-// SVGファイルを生成する関数
-const generateSVG = (
-  pixelGrid: boolean[][],
-  pixW: number,
-  pixH: number,
-  gapX: number,
-  gapY: number
-): string => {
-  const rows = pixelGrid.length;
-  const cols = pixelGrid[0].length;
-  const width = cols * (pixW + gapX) - gapX;
-  const height = rows * (pixH + gapY) - gapY;
-  const pathData = generateSVGPath(pixelGrid, pixW, pixH, gapX, gapY);
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-  <path d="${pathData}" fill="black" stroke="none"/>
-</svg>`;
-};
 
 interface EditorControlsProps {
   className?: string;
@@ -280,55 +168,12 @@ export default function EditorControls({className}: EditorControlsProps) {
 
   // 統合エクスポート処理（ZIP形式でSVGとJSONを同時ダウンロード）
   const handleExport = useCallback(async () => {
-    const zip = new JSZip();
-
-    // JSONデータの準備
-    const exportData: ExportData = {
-      version: "1.0.0",
-      gridInfo: {
-        pixW: state.pixW,
-        pixH: state.pixH,
-        gapX: state.gapX,
-        gapY: state.gapY,
-        gridSize: state.gridSize,
-      },
-      canvasState: {
-        widthPercent: state.canvasWidthPercent,
-        heightPercent: state.canvasHeightPercent,
-        zoom: state.zoom,
-        showGuides: state.showGuides,
-      },
-      pixelData: compressPixelData(state.pixelGrid),
-      exportDate: new Date().toISOString(),
-    };
-
-    // SVGデータの準備
-    const svgContent = generateSVG(
-      state.pixelGrid,
-      state.pixW,
-      state.pixH,
-      state.gapX,
-      state.gapY
-    );
-
-    // ZIPファイルにファイルを追加
-    zip.file(`${exportFileName}.json`, JSON.stringify(exportData, null, 2));
-    zip.file(`${exportFileName}.svg`, svgContent);
-
-    // ZIPファイルを生成してダウンロード
     try {
-      const zipBlob = await zip.generateAsync({type: "blob"});
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${exportFileName}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await exportToZip(state, exportFileName);
     } catch (error) {
-      console.error("Failed to generate ZIP file:", error);
-      alert("エクスポートに失敗しました");
+      alert(
+        error instanceof Error ? error.message : "エクスポートに失敗しました"
+      );
     }
   }, [state, exportFileName]);
 
@@ -337,51 +182,29 @@ export default function EditorControls({className}: EditorControlsProps) {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json";
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string) as ExportData;
-
-          // バージョンチェック
-          if (!data.version) {
-            throw new Error("Invalid file format: missing version");
-          }
-
-          // グリッド情報を更新
-          if (data.gridInfo) {
-            setPixW(data.gridInfo.pixW);
-            setPixH(data.gridInfo.pixH);
-            setGapX(data.gridInfo.gapX);
-            setGapY(data.gridInfo.gapY);
-            updateGridSize(data.gridInfo.gridSize);
-          }
-
-          // キャンバス状態を更新
-          if (data.canvasState) {
-            setCanvasWidthPercent(data.canvasState.widthPercent);
-            setCanvasHeightPercent(data.canvasState.heightPercent);
-            setZoom(data.canvasState.zoom);
-            setShowGuides(data.canvasState.showGuides);
-          }
-
-          // ピクセルデータを更新
-          if (data.pixelData) {
-            setPixelGrid(
-              decompressPixelData(data.pixelData, data.gridInfo.gridSize)
-            );
-          }
-
-          alert("ファイルの読み込みが完了しました");
-        } catch (error) {
-          console.error("Failed to parse JSON file:", error);
-          alert("無効なファイル形式です");
-        }
-      };
-      reader.readAsText(file);
+      try {
+        await importFromFile(file, {
+          setPixW,
+          setPixH,
+          setGapX,
+          setGapY,
+          updateGridSize,
+          setCanvasWidthPercent,
+          setCanvasHeightPercent,
+          setZoom,
+          setShowGuides,
+          setPixelGrid,
+        });
+        alert("ファイルの読み込みが完了しました");
+      } catch (error) {
+        alert(
+          error instanceof Error ? error.message : "無効なファイル形式です"
+        );
+      }
     };
     input.click();
   }, [
