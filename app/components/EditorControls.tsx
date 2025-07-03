@@ -4,6 +4,7 @@ import {useState, useCallback, useEffect} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
+import JSZip from "jszip";
 
 // グローバル関数の型定義
 declare global {
@@ -277,8 +278,11 @@ export default function EditorControls({className}: EditorControlsProps) {
     setShowGuides(false);
   }, [setShowGuides]);
 
-  // エクスポート処理
-  const handleExport = useCallback(() => {
+  // 統合エクスポート処理（ZIP形式でSVGとJSONを同時ダウンロード）
+  const handleExport = useCallback(async () => {
+    const zip = new JSZip();
+
+    // JSONデータの準備
     const exportData: ExportData = {
       version: "1.0.0",
       gridInfo: {
@@ -298,21 +302,7 @@ export default function EditorControls({className}: EditorControlsProps) {
       exportDate: new Date().toISOString(),
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${exportFileName}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [state, exportFileName]);
-
-  // SVGエクスポート処理
-  const handleSVGExport = useCallback(() => {
+    // SVGデータの準備
     const svgContent = generateSVG(
       state.pixelGrid,
       state.pixW,
@@ -320,17 +310,26 @@ export default function EditorControls({className}: EditorControlsProps) {
       state.gapX,
       state.gapY
     );
-    const blob = new Blob([svgContent], {
-      type: "image/svg+xml",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${exportFileName}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
+    // ZIPファイルにファイルを追加
+    zip.file(`${exportFileName}.json`, JSON.stringify(exportData, null, 2));
+    zip.file(`${exportFileName}.svg`, svgContent);
+
+    // ZIPファイルを生成してダウンロード
+    try {
+      const zipBlob = await zip.generateAsync({type: "blob"});
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${exportFileName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to generate ZIP file:", error);
+      alert("エクスポートに失敗しました");
+    }
   }, [state, exportFileName]);
 
   // インポート処理
@@ -439,11 +438,7 @@ export default function EditorControls({className}: EditorControlsProps) {
         <div className={styles.exportImportButtons}>
           <button onClick={handleExport} className={styles.exportButton}>
             <Icon icon="mdi:export" />
-            Export
-          </button>
-          <button onClick={handleSVGExport} className={styles.exportButton}>
-            <Icon icon="mdi:export" />
-            SVG Export
+            Export (ZIP)
           </button>
           <button onClick={handleImport} className={styles.importButton}>
             <Icon icon="mdi:import" />
