@@ -147,7 +147,7 @@ export default function EditorControls({className}: EditorControlsProps) {
   const handleGapXInputChange = useCallback(
     (value: string) => {
       const numValue = parseInt(value) || 0;
-      setGapX(Math.max(0, Math.min(100, numValue))); // 0-100の範囲に制限
+      setGapX(Math.max(0, numValue)); // 0-100の範囲に制限
     },
     [setGapX]
   );
@@ -155,7 +155,7 @@ export default function EditorControls({className}: EditorControlsProps) {
   const handleGapYInputChange = useCallback(
     (value: string) => {
       const numValue = parseInt(value) || 0;
-      setGapY(Math.max(0, Math.min(100, numValue))); // 0-100の範囲に制限
+      setGapY(Math.max(0, numValue)); // 0-100の範囲に制限
     },
     [setGapY]
   );
@@ -327,7 +327,6 @@ export default function EditorControls({className}: EditorControlsProps) {
             <input
               type="range"
               min="0"
-              max="100"
               value={state.gapX}
               onChange={(e) => handleGapXChange(Number(e.target.value))}
               onMouseDown={handleSliderStart}
@@ -338,7 +337,6 @@ export default function EditorControls({className}: EditorControlsProps) {
             <input
               type="number"
               min="0"
-              max="100"
               value={state.gapX}
               onChange={(e) => handleGapXInputChange(e.target.value)}
               className={styles.numberInput}
