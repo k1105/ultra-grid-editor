@@ -24,6 +24,9 @@ declare global {
       canvasHeightPercent: number;
       zoom: number;
       showGuides: boolean;
+      backgroundImage: string | null;
+      backgroundOpacity: number;
+      backgroundImageScale: number;
     };
     resetCanvas?: () => void;
     pixelGrid?: boolean[][];
@@ -47,6 +50,9 @@ export default function EditorControls({className}: EditorControlsProps) {
     setZoom,
     setShowGuides,
     setPixelGrid,
+    setBackgroundImage,
+    setBackgroundOpacity,
+    setBackgroundImageScale,
     resetCanvas,
     updateGridSize,
     undo,
@@ -180,6 +186,30 @@ export default function EditorControls({className}: EditorControlsProps) {
       );
     }
   }, [state, exportFileName]);
+
+  // 背景画像選択処理
+  const handleBackgroundImageSelect = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setBackgroundImage(result);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }, [setBackgroundImage]);
+
+  // 背景画像削除処理
+  const handleBackgroundImageRemove = useCallback(() => {
+    setBackgroundImage(null);
+  }, [setBackgroundImage]);
 
   // インポート処理
   const handleImport = useCallback(() => {
@@ -378,6 +408,89 @@ export default function EditorControls({className}: EditorControlsProps) {
             <option value={64}>64 × 64</option>
           </select>
         </label>
+      </div>
+
+      {/* Background Image Group */}
+      <div className={styles.backgroundImageGroup}>
+        <div className={styles.backgroundImageLabel}>Background Image</div>
+        <div className={styles.backgroundImageControls}>
+          <button
+            onClick={handleBackgroundImageSelect}
+            className={styles.selectImageButton}
+          >
+            <Icon icon="mdi:image" />
+            Select Image
+          </button>
+          {state.backgroundImage && (
+            <button
+              onClick={handleBackgroundImageRemove}
+              className={styles.removeImageButton}
+            >
+              <Icon icon="mdi:close" />
+              Remove
+            </button>
+          )}
+        </div>
+        {state.backgroundImage && (
+          <>
+            <label>
+              Opacity
+              <div className={styles.opacityInputGroup}>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={state.backgroundOpacity}
+                  onChange={(e) => setBackgroundOpacity(Number(e.target.value))}
+                  onMouseDown={handleSliderStart}
+                  onMouseUp={handleSliderEnd}
+                  onTouchStart={handleSliderStart}
+                  onTouchEnd={handleSliderEnd}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={state.backgroundOpacity}
+                  onChange={(e) => setBackgroundOpacity(Number(e.target.value))}
+                  className={styles.numberInput}
+                />
+              </div>
+            </label>
+            <label>
+              Scale
+              <div className={styles.opacityInputGroup}>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="3"
+                  step="0.1"
+                  value={state.backgroundImageScale}
+                  onChange={(e) =>
+                    setBackgroundImageScale(Number(e.target.value))
+                  }
+                  onMouseDown={handleSliderStart}
+                  onMouseUp={handleSliderEnd}
+                  onTouchStart={handleSliderStart}
+                  onTouchEnd={handleSliderEnd}
+                />
+                <input
+                  type="number"
+                  min="0.1"
+                  max="3"
+                  step="0.1"
+                  value={state.backgroundImageScale}
+                  onChange={(e) =>
+                    setBackgroundImageScale(Number(e.target.value))
+                  }
+                  className={styles.numberInput}
+                />
+              </div>
+            </label>
+          </>
+        )}
       </div>
 
       {/* Reset Group - Separated from drawing tools */}

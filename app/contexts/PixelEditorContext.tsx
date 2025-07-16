@@ -22,6 +22,9 @@ interface PixelEditorState {
   zoom: number;
   showGuides: boolean;
   pixelGrid: boolean[][];
+  backgroundImage: string | null;
+  backgroundOpacity: number;
+  backgroundImageScale: number;
 }
 
 // 履歴の型定義
@@ -49,6 +52,9 @@ interface PixelEditorContextType {
   setZoom: (value: number) => void;
   setShowGuides: (value: boolean) => void;
   setPixelGrid: (grid: boolean[][]) => void;
+  setBackgroundImage: (image: string | null) => void;
+  setBackgroundOpacity: (opacity: number) => void;
+  setBackgroundImageScale: (scale: number) => void;
   resetCanvas: () => void;
   updateGridSize: (size: number) => void;
   undo: () => void;
@@ -76,6 +82,9 @@ const initialState: PixelEditorState = {
   zoom: 1,
   showGuides: false,
   pixelGrid: Array.from({length: 16}, () => Array(16).fill(false)),
+  backgroundImage: null,
+  backgroundOpacity: 0.5,
+  backgroundImageScale: 1.0,
 };
 
 // グリッドを初期化する関数
@@ -360,6 +369,18 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     });
   }, []);
 
+  const setBackgroundImage = useCallback((image: string | null) => {
+    setState((prev) => ({...prev, backgroundImage: image}));
+  }, []);
+
+  const setBackgroundOpacity = useCallback((opacity: number) => {
+    setState((prev) => ({...prev, backgroundOpacity: opacity}));
+  }, []);
+
+  const setBackgroundImageScale = useCallback((scale: number) => {
+    setState((prev) => ({...prev, backgroundImageScale: scale}));
+  }, []);
+
   const resetCanvas = useCallback(() => {
     setState((prev) => {
       const newGrid = initializeGrid(prev.gridSize);
@@ -403,6 +424,9 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     setZoom,
     setShowGuides,
     setPixelGrid,
+    setBackgroundImage,
+    setBackgroundOpacity,
+    setBackgroundImageScale,
     resetCanvas,
     updateGridSize,
     undo,

@@ -30,6 +30,9 @@ declare global {
       canvasHeightPercent: number;
       zoom: number;
       showGuides: boolean;
+      backgroundImage: string | null;
+      backgroundOpacity: number;
+      backgroundImageScale: number;
     };
     pixelGrid?: boolean[][];
   }
@@ -88,7 +91,14 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
 
         // 最新の状態を取得する関数
         const getCurrentState = () => {
-          return window.pixelEditorState || state;
+          // window.pixelEditorStateが存在し、かつ背景画像関連のプロパティが含まれている場合は使用
+          if (
+            window.pixelEditorState &&
+            "backgroundImageScale" in window.pixelEditorState
+          ) {
+            return window.pixelEditorState;
+          }
+          return state;
         };
 
         // 指定サイズでグリッド初期化
@@ -161,6 +171,9 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
           p.pixelDensity(1);
         };
 
+        let backgroundImageCache: p5.Image | null = null;
+        let lastBackgroundImageUrl: string | null = null;
+
         p.draw = () => {
           const currentState = getCurrentState();
 
@@ -218,6 +231,39 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
                 p.pop();
               }
             }
+          }
+
+          // 背景画像の描画（グリッドの後に描画して手前に表示）
+          if (currentState.backgroundImage) {
+            // 画像URLが変更された場合のみ新しい画像を読み込む
+            if (lastBackgroundImageUrl !== currentState.backgroundImage) {
+              p.loadImage(currentState.backgroundImage, (img) => {
+                backgroundImageCache = img;
+                lastBackgroundImageUrl = currentState.backgroundImage;
+              });
+            }
+
+            if (backgroundImageCache) {
+              console.log(
+                "Drawing background image with scale:",
+                currentState.backgroundImageScale
+              );
+              p.push();
+              p.tint(255, currentState.backgroundOpacity * 255);
+              p.imageMode(p.CENTER);
+              p.image(
+                backgroundImageCache,
+                p.width / 2,
+                p.height / 2,
+                backgroundImageCache.width * currentState.backgroundImageScale,
+                backgroundImageCache.height * currentState.backgroundImageScale
+              );
+              p.pop();
+            }
+          } else {
+            // 背景画像が削除された場合、キャッシュをクリア
+            backgroundImageCache = null;
+            lastBackgroundImageUrl = null;
           }
         };
 
@@ -348,6 +394,8 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         window.pixelEditorState = state;
         window.pixelGrid = grid;
 
+        console.log("Initial window.pixelEditorState:", state);
+
         console.log("=== Global functions set ===");
         console.log("window.addToHistory set:", !!window.addToHistory);
         console.log("window.undo set:", !!window.undo);
@@ -393,6 +441,7 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
   useEffect(() => {
     if (window.pixelEditorState) {
       window.pixelEditorState = state;
+      console.log("Updated window.pixelEditorState:", state);
     }
   }, [state]);
 

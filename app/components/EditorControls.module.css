@@ -282,3 +282,62 @@
 .resetButtonContainer {
   margin-top: auto;
 }
+
+.backgroundImageGroup {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 12px 8px 12px;
+  margin-bottom: 1rem;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backgroundImageLabel {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #374151;
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+
+.backgroundImageControls {
+  display: flex;
+  gap: 8px;
+}
+
+.selectImageButton,
+.removeImageButton {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.selectImageButton:hover {
+  border-color: #10b981;
+  color: #10b981;
+  background: #f0fdf4;
+}
+
+.removeImageButton:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.opacityInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
