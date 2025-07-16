@@ -210,12 +210,41 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
   // 差分を適用してグリッドを復元する関数
   const applyChanges = (
     baseGrid: boolean[][],
-    changes: Array<{x: number; y: number; value: boolean}>
+    changes: Array<{x: number; y: number; value: boolean}>,
+    originalGridSize?: number
   ): boolean[][] => {
     const newGrid = baseGrid.map((row) => [...row]);
+    const currentGridSize = newGrid.length;
+
     changes.forEach((change) => {
-      if (newGrid[change.y] && newGrid[change.y][change.x] !== undefined) {
-        newGrid[change.y][change.x] = change.value;
+      let targetX = change.x;
+      let targetY = change.y;
+
+      // グリッドサイズが変更されている場合、座標を比例的にマッピング
+      if (originalGridSize && originalGridSize !== currentGridSize) {
+        const scaleX = currentGridSize / originalGridSize;
+        const scaleY = currentGridSize / originalGridSize;
+
+        targetX = Math.floor(change.x * scaleX);
+        targetY = Math.floor(change.y * scaleY);
+
+        console.log(
+          `Mapping coordinate from (${change.x}, ${change.y}) to (${targetX}, ${targetY}) for grid size change ${originalGridSize} -> ${currentGridSize}`
+        );
+      }
+
+      // 座標が有効かチェック
+      if (
+        targetY >= 0 &&
+        targetY < newGrid.length &&
+        targetX >= 0 &&
+        targetX < newGrid[targetY].length
+      ) {
+        newGrid[targetY][targetX] = change.value;
+      } else {
+        console.log(
+          `Skipping invalid coordinate: (${targetX}, ${targetY}) for grid size ${newGrid.length}x${newGrid[0]?.length}`
+        );
       }
     });
     return newGrid;
@@ -227,11 +256,19 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     console.log("Current history index:", historyIndex);
     console.log("History length:", history.length);
     console.log("Can undo:", historyIndex > 0);
+    console.log("Current grid size:", state.gridSize);
+    console.log(
+      "Current grid dimensions:",
+      state.pixelGrid.length,
+      "x",
+      state.pixelGrid[0]?.length
+    );
 
     if (historyIndex > 0) {
       setIsUndoRedoAction(true);
       const currentState = history[historyIndex];
       console.log("Undoing changes:", currentState.changes);
+      console.log("History state grid size:", currentState.gridSize);
 
       // 現在のグリッドから変更を逆適用
       const restoredGrid = applyChanges(
@@ -239,7 +276,8 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
         currentState.changes.map((change) => ({
           ...change,
           value: !change.value, // 値を反転
-        }))
+        })),
+        currentState.gridSize // グリッドサイズを渡す
       );
 
       console.log(
@@ -255,7 +293,7 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
       setHistoryIndex((prev) => prev - 1);
       setIsUndoRedoAction(false);
     }
-  }, [history, historyIndex, state.pixelGrid]);
+  }, [history, historyIndex, state.pixelGrid, state.gridSize]);
 
   // Redo機能
   const redo = useCallback(() => {
@@ -263,14 +301,26 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     console.log("Current history index:", historyIndex);
     console.log("History length:", history.length);
     console.log("Can redo:", historyIndex < history.length - 1);
+    console.log("Current grid size:", state.gridSize);
+    console.log(
+      "Current grid dimensions:",
+      state.pixelGrid.length,
+      "x",
+      state.pixelGrid[0]?.length
+    );
 
     if (historyIndex < history.length - 1) {
       setIsUndoRedoAction(true);
       const nextState = history[historyIndex + 1];
       console.log("Redoing changes:", nextState.changes);
+      console.log("History state grid size:", nextState.gridSize);
 
       // 現在のグリッドに変更を適用
-      const restoredGrid = applyChanges(state.pixelGrid, nextState.changes);
+      const restoredGrid = applyChanges(
+        state.pixelGrid,
+        nextState.changes,
+        nextState.gridSize
+      );
 
       console.log(
         "Restored grid dimensions:",
@@ -285,7 +335,7 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
       setHistoryIndex((prev) => prev + 1);
       setIsUndoRedoAction(false);
     }
-  }, [history, historyIndex, state.pixelGrid]);
+  }, [history, historyIndex, state.pixelGrid, state.gridSize]);
 
   // キーボードショートカットの処理
   useEffect(() => {

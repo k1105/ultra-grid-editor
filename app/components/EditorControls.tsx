@@ -254,11 +254,42 @@ export default function EditorControls({className}: EditorControlsProps) {
     setPixelGrid,
   ]);
 
+  // イベント伝播を停止するハンドラー
+  const handleMouseEvent = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // より包括的なイベントハンドラー
+  const handlePointerEvent = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
+  // タッチイベント用ハンドラー
+  const handleTouchEvent = (e: React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className={`${styles.controls} ${className || ""}`}>
+    <div
+      className={`${styles.controls} ${className || ""}`}
+      onMouseDown={handleMouseEvent}
+      onClick={handleMouseEvent}
+      onMouseUp={handleMouseEvent}
+      onMouseMove={handleMouseEvent}
+      onPointerDown={handlePointerEvent}
+      onPointerUp={handlePointerEvent}
+      onPointerMove={handlePointerEvent}
+      onTouchStart={handleTouchEvent}
+      onTouchEnd={handleTouchEvent}
+      onTouchMove={handleTouchEvent}
+    >
       <div className={styles.modeButtons}>
         <button
-          onClick={() => handleDrawModeChange("draw")}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDrawModeChange("draw");
+          }}
+          onMouseDown={handleMouseEvent}
           className={`${styles.modeButton} ${
             displayMode === "draw" ? styles.active : ""
           }`}
@@ -266,7 +297,11 @@ export default function EditorControls({className}: EditorControlsProps) {
           <Icon icon="ic:baseline-draw" />
         </button>
         <button
-          onClick={() => handleDrawModeChange("erase")}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDrawModeChange("erase");
+          }}
+          onMouseDown={handleMouseEvent}
           className={`${styles.modeButton} ${
             displayMode === "erase" ? styles.active : ""
           }`}
@@ -280,7 +315,10 @@ export default function EditorControls({className}: EditorControlsProps) {
         <div className={styles.undoRedoLabel}>History</div>
         <div className={styles.undoRedoButtons}>
           <button
-            onClick={undo}
+            onClick={(e) => {
+              e.stopPropagation();
+              undo();
+            }}
             disabled={!canUndo}
             className={`${styles.undoButton} ${
               !canUndo ? styles.disabled : ""
@@ -291,7 +329,10 @@ export default function EditorControls({className}: EditorControlsProps) {
             Undo
           </button>
           <button
-            onClick={redo}
+            onClick={(e) => {
+              e.stopPropagation();
+              redo();
+            }}
             disabled={!canRedo}
             className={`${styles.redoButton} ${
               !canRedo ? styles.disabled : ""
@@ -319,11 +360,23 @@ export default function EditorControls({className}: EditorControlsProps) {
           </label>
         </div>
         <div className={styles.exportImportButtons}>
-          <button onClick={handleExport} className={styles.exportButton}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExport();
+            }}
+            className={styles.exportButton}
+          >
             <Icon icon="mdi:export" />
             Export (ZIP)
           </button>
-          <button onClick={handleImport} className={styles.importButton}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleImport();
+            }}
+            className={styles.importButton}
+          >
             <Icon icon="mdi:import" />
             Import
           </button>
@@ -341,11 +394,26 @@ export default function EditorControls({className}: EditorControlsProps) {
             max="10"
             step="0.1"
             value={aspectRatio}
-            onChange={(e) => handleAspectRatioChange(Number(e.target.value))}
-            onMouseDown={handleSliderStart}
-            onMouseUp={handleSliderEnd}
-            onTouchStart={handleSliderStart}
-            onTouchEnd={handleSliderEnd}
+            onChange={(e) => {
+              e.stopPropagation();
+              handleAspectRatioChange(Number(e.target.value));
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleSliderStart();
+            }}
+            onMouseUp={(e) => {
+              e.stopPropagation();
+              handleSliderEnd();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              handleSliderStart();
+            }}
+            onTouchEnd={(e) => {
+              e.stopPropagation();
+              handleSliderEnd();
+            }}
           />
           <span className={styles.valueDisplay}>
             {state.pixW} × {state.pixH} ({aspectRatio.toFixed(2)}:1)
@@ -358,17 +426,35 @@ export default function EditorControls({className}: EditorControlsProps) {
               type="range"
               min="0"
               value={state.gapX}
-              onChange={(e) => handleGapXChange(Number(e.target.value))}
-              onMouseDown={handleSliderStart}
-              onMouseUp={handleSliderEnd}
-              onTouchStart={handleSliderStart}
-              onTouchEnd={handleSliderEnd}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleGapXChange(Number(e.target.value));
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleSliderStart();
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                handleSliderEnd();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                handleSliderStart();
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleSliderEnd();
+              }}
             />
             <input
               type="number"
               min="0"
               value={state.gapX}
-              onChange={(e) => handleGapXInputChange(e.target.value)}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleGapXInputChange(e.target.value);
+              }}
               className={styles.numberInput}
             />
           </div>
@@ -381,18 +467,36 @@ export default function EditorControls({className}: EditorControlsProps) {
               min="0"
               max="100"
               value={state.gapY}
-              onChange={(e) => handleGapYChange(Number(e.target.value))}
-              onMouseDown={handleSliderStart}
-              onMouseUp={handleSliderEnd}
-              onTouchStart={handleSliderStart}
-              onTouchEnd={handleSliderEnd}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleGapYChange(Number(e.target.value));
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleSliderStart();
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                handleSliderEnd();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                handleSliderStart();
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleSliderEnd();
+              }}
             />
             <input
               type="number"
               min="0"
               max="100"
               value={state.gapY}
-              onChange={(e) => handleGapYInputChange(e.target.value)}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleGapYInputChange(e.target.value);
+              }}
               className={styles.numberInput}
             />
           </div>
@@ -401,7 +505,10 @@ export default function EditorControls({className}: EditorControlsProps) {
           Grid Size
           <select
             value={state.gridSize}
-            onChange={(e) => handleGridSizeChange(Number(e.target.value))}
+            onChange={(e) => {
+              e.stopPropagation();
+              handleGridSizeChange(Number(e.target.value));
+            }}
           >
             <option value={16}>16 × 16</option>
             <option value={32}>32 × 32</option>
@@ -415,7 +522,10 @@ export default function EditorControls({className}: EditorControlsProps) {
         <div className={styles.backgroundImageLabel}>Background Image</div>
         <div className={styles.backgroundImageControls}>
           <button
-            onClick={handleBackgroundImageSelect}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBackgroundImageSelect();
+            }}
             className={styles.selectImageButton}
           >
             <Icon icon="mdi:image" />
@@ -423,7 +533,10 @@ export default function EditorControls({className}: EditorControlsProps) {
           </button>
           {state.backgroundImage && (
             <button
-              onClick={handleBackgroundImageRemove}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBackgroundImageRemove();
+              }}
               className={styles.removeImageButton}
             >
               <Icon icon="mdi:close" />
@@ -442,11 +555,26 @@ export default function EditorControls({className}: EditorControlsProps) {
                   max="1"
                   step="0.1"
                   value={state.backgroundOpacity}
-                  onChange={(e) => setBackgroundOpacity(Number(e.target.value))}
-                  onMouseDown={handleSliderStart}
-                  onMouseUp={handleSliderEnd}
-                  onTouchStart={handleSliderStart}
-                  onTouchEnd={handleSliderEnd}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setBackgroundOpacity(Number(e.target.value));
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    handleSliderStart();
+                  }}
+                  onMouseUp={(e) => {
+                    e.stopPropagation();
+                    handleSliderEnd();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    handleSliderStart();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                    handleSliderEnd();
+                  }}
                 />
                 <input
                   type="number"
@@ -454,7 +582,10 @@ export default function EditorControls({className}: EditorControlsProps) {
                   max="1"
                   step="0.1"
                   value={state.backgroundOpacity}
-                  onChange={(e) => setBackgroundOpacity(Number(e.target.value))}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setBackgroundOpacity(Number(e.target.value));
+                  }}
                   className={styles.numberInput}
                 />
               </div>
@@ -468,13 +599,26 @@ export default function EditorControls({className}: EditorControlsProps) {
                   max="3"
                   step="0.1"
                   value={state.backgroundImageScale}
-                  onChange={(e) =>
-                    setBackgroundImageScale(Number(e.target.value))
-                  }
-                  onMouseDown={handleSliderStart}
-                  onMouseUp={handleSliderEnd}
-                  onTouchStart={handleSliderStart}
-                  onTouchEnd={handleSliderEnd}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setBackgroundImageScale(Number(e.target.value));
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    handleSliderStart();
+                  }}
+                  onMouseUp={(e) => {
+                    e.stopPropagation();
+                    handleSliderEnd();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    handleSliderStart();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                    handleSliderEnd();
+                  }}
                 />
                 <input
                   type="number"
@@ -482,9 +626,10 @@ export default function EditorControls({className}: EditorControlsProps) {
                   max="3"
                   step="0.1"
                   value={state.backgroundImageScale}
-                  onChange={(e) =>
-                    setBackgroundImageScale(Number(e.target.value))
-                  }
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setBackgroundImageScale(Number(e.target.value));
+                  }}
                   className={styles.numberInput}
                 />
               </div>
@@ -496,7 +641,13 @@ export default function EditorControls({className}: EditorControlsProps) {
       {/* Reset Group - Separated from drawing tools */}
 
       <div className={styles.resetButtonContainer}>
-        <button onClick={resetCanvas} className={styles.resetButton}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            resetCanvas();
+          }}
+          className={styles.resetButton}
+        >
           Reset Canvas
         </button>
       </div>

@@ -51,13 +51,44 @@ export default function CanvasViewControls({
     setCanvasHeightPercent(100);
   };
 
+  // イベント伝播を停止するハンドラー
+  const handleMouseEvent = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // より包括的なイベントハンドラー
+  const handlePointerEvent = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
+  // タッチイベント用ハンドラー
+  const handleTouchEvent = (e: React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className={`${styles["canvas-view-controls"]} ${className || ""}`}>
+    <div
+      className={`${styles["canvas-view-controls"]} ${className || ""}`}
+      onMouseDown={handleMouseEvent}
+      onClick={handleMouseEvent}
+      onMouseUp={handleMouseEvent}
+      onMouseMove={handleMouseEvent}
+      onPointerDown={handlePointerEvent}
+      onPointerUp={handlePointerEvent}
+      onPointerMove={handlePointerEvent}
+      onTouchStart={handleTouchEvent}
+      onTouchEnd={handleTouchEvent}
+      onTouchMove={handleTouchEvent}
+    >
       {/* ズームコントロール */}
       <div className={styles["zoom-controls"]}>
         <div className={styles["zoom-buttons"]}>
           <button
-            onClick={handleZoomOut}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleZoomOut();
+            }}
+            onMouseDown={handleMouseEvent}
             className={`${styles["zoom-button"]} ${styles["zoom-out"]}`}
           >
             -
@@ -66,13 +97,21 @@ export default function CanvasViewControls({
             {(state.zoom * 100).toFixed(0)}%
           </span>
           <button
-            onClick={handleZoomIn}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleZoomIn();
+            }}
+            onMouseDown={handleMouseEvent}
             className={`${styles["zoom-button"]} ${styles["zoom-in"]}`}
           >
             +
           </button>
           <button
-            onClick={handleZoomReset}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleZoomReset();
+            }}
+            onMouseDown={handleMouseEvent}
             className={`${styles["zoom-button"]} ${styles["zoom-reset"]}`}
           >
             Reset
@@ -84,7 +123,11 @@ export default function CanvasViewControls({
       <div className={styles["distortion-section"]}>
         <div
           className={styles["distortion-header"]}
-          onClick={() => setIsDistortionExpanded(!isDistortionExpanded)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsDistortionExpanded(!isDistortionExpanded);
+          }}
+          onMouseDown={handleMouseEvent}
         >
           <span>Distortion</span>
           <span className={styles["distortion-value"]}>
@@ -107,9 +150,12 @@ export default function CanvasViewControls({
                       min="10"
                       max="200"
                       value={state.canvasWidthPercent}
-                      onChange={(e) =>
-                        handleWidthChange(Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleWidthChange(Number(e.target.value));
+                      }}
+                      onMouseDown={handleMouseEvent}
+                      onClick={handleMouseEvent}
                       className={styles["distortion-slider"]}
                     />
                     <span className={styles["slider-label"]}>Stretched</span>
@@ -154,7 +200,11 @@ export default function CanvasViewControls({
 
               {/* Resetボタン */}
               <button
-                onClick={handleDistortionReset}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDistortionReset();
+                }}
+                onMouseDown={handleMouseEvent}
                 className={styles["distortion-reset"]}
               >
                 Reset to 100%
