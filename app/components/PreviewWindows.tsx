@@ -12,7 +12,7 @@ interface PixelEditorState {
   gapX: number;
   gapY: number;
   gridSize: number;
-  drawMode: "draw" | "erase";
+  drawMode: "draw" | "erase" | "move";
   canvasWidthPercent: number;
   canvasHeightPercent: number;
   zoom: number;
@@ -195,7 +195,7 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
         p5InstanceRef.current = null;
       }
     };
-  }, [isClient, percentage]); // stateを依存配列から削除
+  }, [isClient, percentage, createPreviewSketch]);
 
   // 状態変更時にグローバル変数を更新
   useEffect(() => {

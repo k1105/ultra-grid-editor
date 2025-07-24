@@ -18,6 +18,8 @@ export interface ExportData {
   };
   pixelData: string[]; // 16進数文字列の配列
   exportDate: string;
+  // アスペクト比情報を追加（後方互換性のため）
+  aspectRatio?: number;
 }
 
 // ピクセルデータを16進数に圧縮する関数
@@ -148,6 +150,8 @@ export const exportToZip = async (
     },
     pixelData: compressPixelData(state.pixelGrid),
     exportDate: new Date().toISOString(),
+    // アスペクト比情報を追加（後方互換性のため）
+    aspectRatio: state.pixW / state.pixH,
   };
 
   // SVGデータの準備

@@ -204,7 +204,13 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
         return newHistory;
       });
     },
-    [historyIndex, isUndoRedoAction, state.gridSize, state.pixelGrid]
+    [
+      historyIndex,
+      isUndoRedoAction,
+      state.gridSize,
+      state.pixelGrid,
+      history.length,
+    ]
   );
 
   // 差分を適用してグリッドを復元する関数

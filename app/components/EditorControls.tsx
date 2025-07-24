@@ -67,9 +67,6 @@ export default function EditorControls({className}: EditorControlsProps) {
   // 最大ピクセルサイズの制限
   const MAX_PIXEL_SIZE = 40;
 
-  // アスペクト比を計算
-  const aspectRatio = state.pixW / state.pixH;
-
   // キーボードイベントの監視
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -99,29 +96,6 @@ export default function EditorControls({className}: EditorControlsProps) {
       ? "erase"
       : "draw"
     : state.drawMode;
-
-  // アスペクト比を変更する関数
-  const handleAspectRatioChange = useCallback(
-    (ratio: number) => {
-      // アスペクト比に基づいてpixWとpixHを計算
-      // 最大サイズを超えないように制限
-      let newPixW, newPixH;
-
-      if (ratio >= 1) {
-        // 横長の場合
-        newPixW = Math.min(MAX_PIXEL_SIZE, Math.round(ratio * 20));
-        newPixH = Math.round(newPixW / ratio);
-      } else {
-        // 縦長の場合
-        newPixH = Math.min(MAX_PIXEL_SIZE, Math.round(20 / ratio));
-        newPixW = Math.round(newPixH * ratio);
-      }
-
-      setPixW(newPixW);
-      setPixH(newPixH);
-    },
-    [setPixW, setPixH]
-  );
 
   // グリッドサイズ変更時の処理をメモ化
   const handleGridSizeChange = useCallback(
@@ -399,16 +373,31 @@ export default function EditorControls({className}: EditorControlsProps) {
       <div className={styles.gridEditGroup}>
         <div className={styles.gridEditLabel}>Grid Edit</div>
         <label>
-          Pixel Aspect Ratio
+          Aspect Ratio
           <input
             type="range"
             min="0.1"
             max="10"
             step="0.1"
-            value={aspectRatio}
+            value={state.pixW / state.pixH}
             onChange={(e) => {
               e.stopPropagation();
-              handleAspectRatioChange(Number(e.target.value));
+              const ratio = Number(e.target.value);
+              // アスペクト比に基づいてpixWとpixHを計算
+              let newPixW, newPixH;
+
+              if (ratio >= 1) {
+                // 横長の場合
+                newPixW = Math.min(MAX_PIXEL_SIZE, Math.round(ratio * 20));
+                newPixH = Math.round(newPixW / ratio);
+              } else {
+                // 縦長の場合
+                newPixH = Math.min(MAX_PIXEL_SIZE, Math.round(20 / ratio));
+                newPixW = Math.round(newPixH * ratio);
+              }
+
+              setPixW(newPixW);
+              setPixH(newPixH);
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -428,9 +417,48 @@ export default function EditorControls({className}: EditorControlsProps) {
             }}
           />
           <span className={styles.valueDisplay}>
-            {state.pixW} × {state.pixH} ({aspectRatio.toFixed(2)}:1)
+            {state.pixW} × {state.pixH} ({(state.pixW / state.pixH).toFixed(2)}
+            :1)
           </span>
         </label>
+        <div className={styles.pixelSizeGroup}>
+          <label>
+            Width
+            <input
+              type="number"
+              min="1"
+              max={MAX_PIXEL_SIZE}
+              value={state.pixW}
+              onChange={(e) => {
+                e.stopPropagation();
+                const newPixW = Math.max(
+                  1,
+                  Math.min(MAX_PIXEL_SIZE, parseInt(e.target.value) || 1)
+                );
+                setPixW(newPixW);
+              }}
+              className={styles.numberInput}
+            />
+          </label>
+          <label>
+            Height
+            <input
+              type="number"
+              min="1"
+              max={MAX_PIXEL_SIZE}
+              value={state.pixH}
+              onChange={(e) => {
+                e.stopPropagation();
+                const newPixH = Math.max(
+                  1,
+                  Math.min(MAX_PIXEL_SIZE, parseInt(e.target.value) || 1)
+                );
+                setPixH(newPixH);
+              }}
+              className={styles.numberInput}
+            />
+          </label>
+        </div>
         <label>
           Gap X
           <div className={styles.gapInputGroup}>
