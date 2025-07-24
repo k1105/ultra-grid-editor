@@ -195,7 +195,8 @@ function PreviewWindow({percentage, label, className}: PreviewWindowProps) {
         p5InstanceRef.current = null;
       }
     };
-  }, [isClient, percentage, createPreviewSketch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, percentage]);
 
   // 状態変更時にグローバル変数を更新
   useEffect(() => {

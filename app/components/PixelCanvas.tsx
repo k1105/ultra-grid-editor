@@ -542,18 +542,8 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         p5InstanceRef.current = null;
       }
     };
-  }, [
-    isClient,
-    addToHistory,
-    redo,
-    setCanvasWidthPercent,
-    setDrawMode,
-    setPixelGrid,
-    setShowGuides,
-    setZoom,
-    state,
-    undo,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient]);
 
   // グリッドサイズが変更された場合のみp5スケッチを再作成
   useEffect(() => {
