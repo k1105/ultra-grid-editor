@@ -12,7 +12,7 @@ declare global {
     updateGridSize?: (size: number) => void;
     updatePixelGrid?: (newGrid: boolean[][]) => void;
     resetCanvas?: () => void;
-    setDrawMode?: (mode: "draw" | "erase") => void;
+    setDrawMode?: (mode: "draw" | "erase" | "move") => void;
     updateCanvasSize?: (widthPercent: number) => void;
     updateZoom?: (zoom: number) => void;
     setShowGuides?: (show: boolean) => void;
@@ -25,7 +25,7 @@ declare global {
       gapY: number;
       gapX: number;
       gridSize: number;
-      drawMode: "draw" | "erase";
+      drawMode: "draw" | "erase" | "move";
       canvasWidthPercent: number;
       canvasHeightPercent: number;
       zoom: number;
@@ -88,6 +88,75 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         let isDrawing = false;
         let isDragging = false;
         let lastDrawnCell: {x: number; y: number} | null = null;
+
+        // グリフ移動用の変数
+        let isMovingGlyph = false;
+        let moveStartCell: {x: number; y: number} | null = null;
+        let originalGrid: boolean[][] = [];
+        let glyphBounds: {
+          minX: number;
+          minY: number;
+          maxX: number;
+          maxY: number;
+        } | null = null;
+
+        // グリフの境界を計算する関数
+        const calculateGlyphBounds = (
+          grid: boolean[][]
+        ): {minX: number; minY: number; maxX: number; maxY: number} | null => {
+          let minX = grid[0].length;
+          let minY = grid.length;
+          let maxX = -1;
+          let maxY = -1;
+          let hasPixels = false;
+
+          for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+              if (grid[y][x]) {
+                hasPixels = true;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+              }
+            }
+          }
+
+          return hasPixels ? {minX, minY, maxX, maxY} : null;
+        };
+
+        // グリフを移動する関数
+        const moveGlyph = (
+          grid: boolean[][],
+          bounds: {minX: number; minY: number; maxX: number; maxY: number},
+          deltaX: number,
+          deltaY: number
+        ): boolean[][] => {
+          const newGrid = Array.from({length: grid.length}, () =>
+            Array(grid[0].length).fill(false)
+          );
+
+          for (let y = bounds.minY; y <= bounds.maxY; y++) {
+            for (let x = bounds.minX; x <= bounds.maxX; x++) {
+              if (grid[y][x]) {
+                const newX = x + deltaX;
+                const newY = y + deltaY;
+
+                // 境界チェック
+                if (
+                  newX >= 0 &&
+                  newX < grid[0].length &&
+                  newY >= 0 &&
+                  newY < grid.length
+                ) {
+                  newGrid[newY][newX] = true;
+                }
+              }
+            }
+          }
+
+          return newGrid;
+        };
 
         // 最新の状態を取得する関数
         const getCurrentState = () => {
@@ -176,6 +245,17 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
 
         p.draw = () => {
           const currentState = getCurrentState();
+
+          // 移動モードの時にカーソルを手のひらに変更
+          if (currentState.drawMode === "move") {
+            if (isMovingGlyph) {
+              p.cursor("grabbing");
+            } else {
+              p.cursor("grab");
+            }
+          } else {
+            p.cursor("default");
+          }
 
           p.background(255);
 
@@ -271,10 +351,23 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
         p.mousePressed = (event: MouseEvent) => {
           const cell = getGridCell(p.mouseX, p.mouseY);
           if (cell) {
+            const currentState = getCurrentState();
+
+            // 移動モードの場合
+            if (currentState.drawMode === "move") {
+              // グリフの境界を計算
+              glyphBounds = calculateGlyphBounds(grid);
+              if (glyphBounds) {
+                isMovingGlyph = true;
+                moveStartCell = cell;
+                originalGrid = grid.map((row) => [...row]);
+              }
+              return;
+            }
+
+            // 描画モードの場合
             isDrawing = true;
             isDragging = false; // ドラッグ開始フラグをリセット
-
-            const currentState = getCurrentState();
 
             // Shiftキーが押されている場合は一時的にモードを反転
             const effectiveMode = event.shiftKey
@@ -307,12 +400,33 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
 
         // マウスドラッグで描画継続
         p.mouseDragged = (event: MouseEvent) => {
+          const currentState = getCurrentState();
+
+          // 移動モードの場合
+          if (isMovingGlyph && moveStartCell && glyphBounds) {
+            const cell = getGridCell(p.mouseX, p.mouseY);
+            if (cell) {
+              const deltaX = cell.x - moveStartCell.x;
+              const deltaY = cell.y - moveStartCell.y;
+
+              // グリフを移動
+              const newGrid = moveGlyph(
+                originalGrid,
+                glyphBounds,
+                deltaX,
+                deltaY
+              );
+              grid = newGrid;
+              setPixelGrid(newGrid);
+            }
+            return;
+          }
+
+          // 描画モードの場合
           if (isDrawing) {
             isDragging = true; // ドラッグ開始フラグを設定
             const cell = getGridCell(p.mouseX, p.mouseY);
             if (cell) {
-              const currentState = getCurrentState();
-
               // Shiftキーが押されている場合は一時的にモードを反転
               const effectiveMode = event.shiftKey
                 ? currentState.drawMode === "draw"
@@ -346,7 +460,22 @@ export default function PixelCanvas({className}: PixelCanvasProps) {
           console.log("=== Mouse Released ===");
           console.log("isDrawing:", isDrawing);
           console.log("isDragging:", isDragging);
+          console.log("isMovingGlyph:", isMovingGlyph);
 
+          // 移動モードの場合
+          if (isMovingGlyph) {
+            if (window.addToHistory) {
+              const currentGrid = grid.map((row) => [...row]);
+              window.addToHistory(currentGrid);
+            }
+            isMovingGlyph = false;
+            moveStartCell = null;
+            originalGrid = [];
+            glyphBounds = null;
+            return;
+          }
+
+          // 描画モードの場合
           if (isDrawing && isDragging) {
             // ドラッグが発生した場合のみ履歴に追加
             const currentGrid = grid.map((row) => [...row]);

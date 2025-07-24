@@ -10,7 +10,7 @@ import {exportToZip, importFromFile} from "../utils/exportImport";
 declare global {
   interface Window {
     updateGridSize?: (size: number) => void;
-    setDrawMode?: (mode: "draw" | "erase") => void;
+    setDrawMode?: (mode: "draw" | "erase" | "move") => void;
     setShowGuides?: (show: boolean) => void;
     updatePixelGrid?: (newGrid: boolean[][]) => void;
     pixelEditorState?: {
@@ -19,7 +19,7 @@ declare global {
       gapX: number;
       gapY: number;
       gridSize: number;
-      drawMode: "draw" | "erase";
+      drawMode: "draw" | "erase" | "move";
       canvasWidthPercent: number;
       canvasHeightPercent: number;
       zoom: number;
@@ -133,7 +133,7 @@ export default function EditorControls({className}: EditorControlsProps) {
 
   // 描画モード変更ハンドラー
   const handleDrawModeChange = useCallback(
-    (mode: "draw" | "erase") => {
+    (mode: "draw" | "erase" | "move") => {
       setDrawMode(mode);
     },
     [setDrawMode]
@@ -307,6 +307,18 @@ export default function EditorControls({className}: EditorControlsProps) {
           }`}
         >
           <Icon icon="fluent:eraser-24-filled" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDrawModeChange("move");
+          }}
+          onMouseDown={handleMouseEvent}
+          className={`${styles.modeButton} ${
+            displayMode === "move" ? styles.active : ""
+          }`}
+        >
+          <Icon icon="ic:round-back-hand" />
         </button>
       </div>
 

@@ -16,7 +16,7 @@ interface PixelEditorState {
   gapX: number;
   gapY: number;
   gridSize: number;
-  drawMode: "draw" | "erase";
+  drawMode: "draw" | "erase" | "move";
   canvasWidthPercent: number;
   canvasHeightPercent: number;
   zoom: number;
@@ -46,7 +46,7 @@ interface PixelEditorContextType {
   setGapX: (value: number) => void;
   setGapY: (value: number) => void;
   setGridSize: (value: number) => void;
-  setDrawMode: (mode: "draw" | "erase") => void;
+  setDrawMode: (mode: "draw" | "erase" | "move") => void;
   setCanvasWidthPercent: (value: number) => void;
   setCanvasHeightPercent: (value: number) => void;
   setZoom: (value: number) => void;
@@ -393,7 +393,7 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     [addToHistory, isUndoRedoAction]
   );
 
-  const setDrawMode = useCallback((mode: "draw" | "erase") => {
+  const setDrawMode = useCallback((mode: "draw" | "erase" | "move") => {
     setState((prev) => ({...prev, drawMode: mode}));
   }, []);
 
