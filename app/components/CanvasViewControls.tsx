@@ -4,16 +4,32 @@ import {useState} from "react";
 import Image from "next/image";
 import styles from "./PixelCanvas.module.css";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
+import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
 
 interface CanvasViewControlsProps {
   className?: string;
+  mode?: "pixel" | "fibonacci";
 }
 
 export default function CanvasViewControls({
   className,
+  mode = "pixel",
 }: CanvasViewControlsProps) {
-  const {state, setCanvasWidthPercent, setZoom, setCanvasHeightPercent} =
-    usePixelEditor();
+  const pixelState = usePixelEditor();
+  const fibonacciState = useFibonacciSpiral();
+
+  // モードに応じて状態を選択
+  const state = mode === "pixel" ? pixelState.state : fibonacciState.state;
+  const setCanvasWidthPercent =
+    mode === "pixel"
+      ? pixelState.setCanvasWidthPercent
+      : fibonacciState.setCanvasWidthPercent;
+  const setZoom =
+    mode === "pixel" ? pixelState.setZoom : fibonacciState.setZoom;
+  const setCanvasHeightPercent =
+    mode === "pixel"
+      ? pixelState.setCanvasHeightPercent
+      : fibonacciState.setCanvasHeightPercent;
   const [isDistortionExpanded, setIsDistortionExpanded] = useState(false);
 
   // 幅変更ハンドラー - widthのみを変更（heightは固定）

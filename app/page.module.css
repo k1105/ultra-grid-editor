@@ -9,6 +9,12 @@
   padding: 20px;
 }
 
+.modeSelector {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 20px auto;
+}
+
 .main {
   display: flex;
   gap: 20px;
