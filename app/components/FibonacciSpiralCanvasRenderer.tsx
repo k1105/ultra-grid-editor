@@ -161,7 +161,7 @@ export function createFibonacciSpiralCanvasSketch(
 
       // 各ドットを描画
       for (let i = 0; i < currentState.numberOfCircles; i++) {
-        const radius = currentState.spread * Math.sqrt(i);
+        const radius = currentState.spread * Math.sqrt(i) * 2.2;
         const theta = i * goldenAngle;
         const x_rel = radius * Math.cos(theta);
         const y_rel = radius * Math.sin(theta);
@@ -187,7 +187,7 @@ export function createFibonacciSpiralCanvasSketch(
         const y = centerY + y_final_rel * (effectiveHeight / 100);
 
         // ドットの半径を計算
-        const dotRadius = currentState.spread * 0.55;
+        const dotRadius = currentState.spread * 1.2;
 
         // 位置情報を保存
         dotPositions.push({x, y, radius: dotRadius, index: i});
@@ -210,7 +210,7 @@ export function createFibonacciSpiralCanvasSketch(
     };
 
     // マウスプレスでドットトグル開始
-    p.mousePressed = () => {
+    p.mousePressed = (event: MouseEvent) => {
       const dot = getDotAtPosition(p.mouseX, p.mouseY);
       if (dot) {
         isDragging = true;
@@ -218,12 +218,19 @@ export function createFibonacciSpiralCanvasSketch(
           // 描画モードに応じた処理
           const currentState = getCurrentState();
 
-          if (currentState.drawMode === "draw") {
+          // Shiftキーが押されている場合は一時的にモードを反転
+          const effectiveMode = event.shiftKey
+            ? currentState.drawMode === "draw"
+              ? "erase"
+              : "draw"
+            : currentState.drawMode;
+
+          if (effectiveMode === "draw") {
             // drawモードの場合は白いドットのみを黒にする
             if (!currentState.dotStates[dot.index]) {
               window.toggleFibonacciDot?.(dot.index);
             }
-          } else if (currentState.drawMode === "erase") {
+          } else if (effectiveMode === "erase") {
             // 消去モードの場合は黒いドットのみを白に戻す
             if (currentState.dotStates[dot.index]) {
               window.toggleFibonacciDot?.(dot.index);
@@ -236,19 +243,26 @@ export function createFibonacciSpiralCanvasSketch(
     };
 
     // マウスドラッグでドットトグル継続
-    p.mouseDragged = () => {
+    p.mouseDragged = (event: MouseEvent) => {
       if (isDragging) {
         const dot = getDotAtPosition(p.mouseX, p.mouseY);
         if (dot && dot.index !== lastToggledIndex) {
           // 描画モードに応じた処理
           const currentState = getCurrentState();
 
-          if (currentState.drawMode === "draw") {
+          // Shiftキーが押されている場合は一時的にモードを反転
+          const effectiveMode = event.shiftKey
+            ? currentState.drawMode === "draw"
+              ? "erase"
+              : "draw"
+            : currentState.drawMode;
+
+          if (effectiveMode === "draw") {
             // drawモードの場合は白いドットのみを黒にする
             if (!currentState.dotStates[dot.index]) {
               window.toggleFibonacciDot?.(dot.index);
             }
-          } else if (currentState.drawMode === "erase") {
+          } else if (effectiveMode === "erase") {
             // 消去モードの場合は黒いドットのみを白に戻す
             if (currentState.dotStates[dot.index]) {
               window.toggleFibonacciDot?.(dot.index);

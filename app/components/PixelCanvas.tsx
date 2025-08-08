@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
+import Image from "next/image";
 import CanvasViewControls from "./CanvasViewControls";
 import styles from "./PixelCanvas.module.css";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
@@ -209,21 +210,21 @@ export default function PixelCanvas({
             style={{
               opacity: state.backgroundOpacity,
               position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
+              top: "50%",
+              left: "50%",
+              transformOrigin: "center center",
+              width: `${state.backgroundImageScale * 100}%`,
+              height: `${state.backgroundImageScale * 100}%`,
               zIndex: 2,
               pointerEvents: "none",
               mixBlendMode: "multiply",
             }}
           >
-            <img
+            <Image
               src={state.backgroundImage}
               alt="Background"
+              fill
               style={{
-                width: `${state.backgroundImageScale * 100}%`,
-                height: `${state.backgroundImageScale * 100}%`,
                 objectFit: "contain",
               }}
             />
