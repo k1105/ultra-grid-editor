@@ -14,6 +14,7 @@ interface FibonacciSpiralState {
   spread: number;
   rotationAngle: number;
   deformationStrength: number;
+  dotRadius: number;
   dotStates: boolean[];
   drawMode: "draw" | "erase" | "move";
   zoom: number;
@@ -28,6 +29,7 @@ interface FibonacciSpiralContextType {
   setSpread: (value: number) => void;
   setRotationAngle: (value: number) => void;
   setDeformationStrength: (value: number) => void;
+  setDotRadius: (value: number) => void;
   setDrawMode: (mode: "draw" | "erase" | "move") => void;
   setZoom: (value: number) => void;
   setCanvasWidthPercent: (value: number) => void;
@@ -48,6 +50,7 @@ const initialState: FibonacciSpiralState = {
   spread: 6.0,
   rotationAngle: 0,
   deformationStrength: 1.0,
+  dotRadius: 1.2,
   dotStates: Array.from({length: 1000}, () => false), // 最大1000個のドット
   drawMode: "draw",
   zoom: 1,
@@ -94,6 +97,13 @@ export function FibonacciSpiralProvider({
     setState((prev) => ({
       ...prev,
       deformationStrength: value,
+    }));
+  }, []);
+
+  const setDotRadius = useCallback((value: number) => {
+    setState((prev) => ({
+      ...prev,
+      dotRadius: value,
     }));
   }, []);
 
@@ -154,6 +164,7 @@ export function FibonacciSpiralProvider({
     setSpread,
     setRotationAngle,
     setDeformationStrength,
+    setDotRadius,
     setDrawMode,
     setZoom,
     setCanvasWidthPercent,

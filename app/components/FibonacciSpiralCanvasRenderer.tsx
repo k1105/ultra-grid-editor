@@ -11,6 +11,7 @@ declare global {
       spread: number;
       rotationAngle: number;
       deformationStrength: number;
+      dotRadius: number;
       dotStates: boolean[];
       drawMode: "draw" | "erase" | "move";
       zoom: number;
@@ -29,6 +30,7 @@ export interface FibonacciSpiralCanvasState {
   spread: number;
   rotationAngle: number;
   deformationStrength: number;
+  dotRadius: number;
   dotStates: boolean[];
   drawMode: "draw" | "erase" | "move";
   zoom: number;
@@ -142,19 +144,17 @@ export function createFibonacciSpiralCanvasSketch(
       const rotationAngleRad = (currentState.rotationAngle * Math.PI) / 180;
 
       // 背景を描画
-      p.background(200); // ダークグレー
+      p.background(255); // ダークグレー
 
-      // 変形軸のハンドルを描画（変形強度が1.05より大きい場合）
-      if (currentState.deformationStrength > 1.05) {
-        const handleVisLength = Math.min(width, height) * 0.4;
-        const h_dx = handleVisLength * Math.cos(rotationAngleRad);
-        const h_dy = handleVisLength * Math.sin(rotationAngleRad);
-        p.push();
-        p.drawingContext.setLineDash([4, 4]);
-        p.line(centerX - h_dx, centerY - h_dy, centerX + h_dx, centerY + h_dy);
-        p.drawingContext.setLineDash([]);
-        p.pop();
-      }
+      const handleVisLength = Math.min(width, height) * 0.4;
+      const h_dx = handleVisLength * Math.cos(rotationAngleRad);
+      const h_dy = handleVisLength * Math.sin(rotationAngleRad);
+      p.push();
+      p.stroke(200);
+      p.drawingContext.setLineDash([4, 4]);
+      p.line(centerX - h_dx, centerY - h_dy, centerX + h_dx, centerY + h_dy);
+      p.drawingContext.setLineDash([]);
+      p.pop();
 
       // ドット位置をリセット
       dotPositions = [];
@@ -187,21 +187,22 @@ export function createFibonacciSpiralCanvasSketch(
         const y = centerY + y_final_rel * (effectiveHeight / 100);
 
         // ドットの半径を計算
-        const dotRadius = currentState.spread * 1.2;
+        const dotRadius = currentState.spread * currentState.dotRadius;
 
         // 位置情報を保存
         dotPositions.push({x, y, radius: dotRadius, index: i});
 
         // ドットを描画
         p.push();
-        p.noStroke();
+        p.strokeWeight(2);
+        p.stroke(200);
 
         // 状態に応じて色を決定
         const isRed = currentState.dotStates[i];
         if (isRed) {
           p.fill(0);
         } else {
-          p.fill(255);
+          p.noFill();
         }
 
         p.circle(x, y, dotRadius * 2);

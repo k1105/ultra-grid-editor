@@ -17,6 +17,7 @@ export default function FibonacciSpiralControls({
     setNumberOfCircles,
     setRotationAngle,
     setDeformationStrength,
+    setDotRadius,
     setDrawMode,
   } = useFibonacciSpiral();
 
@@ -120,62 +121,87 @@ export default function FibonacciSpiralControls({
       </div>
 
       {/* フィボナッチスパイラルコントロール */}
-      <div className={styles.controlGroup}>
-        <div className={styles.controlLabel}>円の数 (n)</div>
-        <div className={styles.sliderContainer}>
-          <input
-            type="range"
-            min="1"
-            max="1000"
-            value={state.numberOfCircles}
-            onChange={(e) => {
-              e.stopPropagation();
-              setNumberOfCircles(parseInt(e.target.value));
-            }}
-            className={styles.slider}
-          />
-          <span className={styles.valueDisplay}>{state.numberOfCircles}</span>
-        </div>
-      </div>
+      <div className={styles.gridEditGroup}>
+        <div className={styles.gridEditLabel}>フィボナッチスパイラル設定</div>
 
-      <div className={styles.controlGroup}>
-        <div className={styles.controlLabel}>回転 (度)</div>
-        <div className={styles.sliderContainer}>
-          <input
-            type="range"
-            min="0"
-            max="180"
-            step="1"
-            value={state.rotationAngle}
-            onChange={(e) => {
-              e.stopPropagation();
-              setRotationAngle(parseFloat(e.target.value));
-            }}
-            className={styles.slider}
-          />
-          <span className={styles.valueDisplay}>{state.rotationAngle}°</span>
-        </div>
-      </div>
+        <label>
+          円の数 (n)
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min="1"
+              max="1000"
+              value={state.numberOfCircles}
+              onChange={(e) => {
+                e.stopPropagation();
+                setNumberOfCircles(parseInt(e.target.value));
+              }}
+              className={styles.slider}
+            />
+            <span className={styles.valueDisplay}>{state.numberOfCircles}</span>
+          </div>
+        </label>
 
-      <div className={styles.controlGroup}>
-        <div className={styles.controlLabel}>変形</div>
-        <div className={styles.sliderContainer}>
-          <input
-            type="range"
-            min="1"
-            max="5"
-            step="0.1"
-            value={state.deformationStrength}
-            onChange={(e) => {
-              e.stopPropagation();
-              setDeformationStrength(parseFloat(e.target.value));
-            }}
-            className={styles.slider}
-          />
-          <span className={styles.valueDisplay}>
-            {state.deformationStrength.toFixed(1)}
-          </span>
-        </div>
+        <label>
+          回転 (度)
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min="0"
+              max="180"
+              step="1"
+              value={state.rotationAngle}
+              onChange={(e) => {
+                e.stopPropagation();
+                setRotationAngle(parseFloat(e.target.value));
+              }}
+              className={styles.slider}
+            />
+            <span className={styles.valueDisplay}>{state.rotationAngle}°</span>
+          </div>
+        </label>
+
+        <label>
+          変形
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="0.1"
+              value={state.deformationStrength}
+              onChange={(e) => {
+                e.stopPropagation();
+                setDeformationStrength(parseFloat(e.target.value));
+              }}
+              className={styles.slider}
+            />
+            <span className={styles.valueDisplay}>
+              {state.deformationStrength.toFixed(1)}
+            </span>
+          </div>
+        </label>
+
+        <label>
+          ドット半径
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min="0.1"
+              max="3.0"
+              step="0.1"
+              value={state.dotRadius}
+              onChange={(e) => {
+                e.stopPropagation();
+                setDotRadius(parseFloat(e.target.value));
+              }}
+              className={styles.slider}
+            />
+            <span className={styles.valueDisplay}>
+              {state.dotRadius.toFixed(1)}
+            </span>
+          </div>
+        </label>
       </div>
     </div>
   );
