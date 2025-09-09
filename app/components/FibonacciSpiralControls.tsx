@@ -1,9 +1,13 @@
 "use client";
 
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
+import {
+  exportFibonacciToZip,
+  importFibonacciFromFile,
+} from "../utils/exportImport";
 
 interface FibonacciSpiralControlsProps {
   className?: string;
@@ -15,13 +19,19 @@ export default function FibonacciSpiralControls({
   const {
     state,
     setNumberOfCircles,
+    setSpread,
     setRotationAngle,
     setDeformationStrength,
     setDotRadius,
+    setCanvasWidthPercent,
+    setCanvasHeightPercent,
+    setZoom,
+    setDotStates,
     setDrawMode,
   } = useFibonacciSpiral();
 
   const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [exportFileName, setExportFileName] = useState("fibonacci-spiral");
 
   // キーボードイベントの監視
   useEffect(() => {
@@ -65,6 +75,58 @@ export default function FibonacciSpiralControls({
   const handleTouchEvent = (e: React.TouchEvent) => {
     e.stopPropagation();
   };
+
+  // エクスポート処理
+  const handleExport = useCallback(async () => {
+    try {
+      await exportFibonacciToZip(state, exportFileName);
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "エクスポートに失敗しました"
+      );
+    }
+  }, [state, exportFileName]);
+
+  // インポート処理
+  const handleImport = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await importFibonacciFromFile(file, {
+          setNumberOfCircles,
+          setSpread,
+          setRotationAngle,
+          setDeformationStrength,
+          setDotRadius,
+          setCanvasWidthPercent,
+          setCanvasHeightPercent,
+          setZoom,
+          setDotStates,
+        });
+        alert("ファイルの読み込みが完了しました");
+      } catch (error) {
+        alert(
+          error instanceof Error ? error.message : "無効なファイル形式です"
+        );
+      }
+    };
+    input.click();
+  }, [
+    setNumberOfCircles,
+    setSpread,
+    setRotationAngle,
+    setDeformationStrength,
+    setDotRadius,
+    setCanvasWidthPercent,
+    setCanvasHeightPercent,
+    setZoom,
+    setDotStates,
+  ]);
 
   return (
     <div
@@ -118,6 +180,44 @@ export default function FibonacciSpiralControls({
         >
           <Icon icon="ic:round-back-hand" />
         </button>
+      </div>
+
+      {/* Export/Import Group */}
+      <div className={styles.exportImportGroup}>
+        <div className={styles.exportImportLabel}>Export/Import</div>
+        <div className={styles.fileNameInput}>
+          <label>
+            File Name
+            <input
+              type="text"
+              value={exportFileName}
+              onChange={(e) => setExportFileName(e.target.value)}
+              placeholder="fibonacci-spiral"
+            />
+          </label>
+        </div>
+        <div className={styles.exportImportButtons}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExport();
+            }}
+            className={styles.exportButton}
+          >
+            <Icon icon="mdi:export" />
+            Export (ZIP)
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleImport();
+            }}
+            className={styles.importButton}
+          >
+            <Icon icon="mdi:import" />
+            Import
+          </button>
+        </div>
       </div>
 
       {/* フィボナッチスパイラルコントロール */}
