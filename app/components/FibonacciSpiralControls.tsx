@@ -222,7 +222,7 @@ export default function FibonacciSpiralControls({
 
       {/* フィボナッチスパイラルコントロール */}
       <div className={styles.gridEditGroup}>
-        <div className={styles.gridEditLabel}>フィボナッチスパイラル設定</div>
+        <div className={styles.gridEditLabel}>Grid Edit</div>
 
         <label>
           円の数 (n)

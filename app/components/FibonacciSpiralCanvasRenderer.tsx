@@ -55,6 +55,7 @@ export function createFibonacciSpiralCanvasSketch(
     }> = [];
     let isDragging = false;
     let lastToggledIndex = -1;
+    let showStroke = true; // ストローク表示フラグ
 
     // 黄金角
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -150,7 +151,11 @@ export function createFibonacciSpiralCanvasSketch(
       const h_dx = handleVisLength * Math.cos(rotationAngleRad);
       const h_dy = handleVisLength * Math.sin(rotationAngleRad);
       p.push();
-      p.stroke(200);
+      if (showStroke) {
+        p.stroke(200);
+      } else {
+        p.noStroke();
+      }
       p.drawingContext.setLineDash([4, 4]);
       p.line(centerX - h_dx, centerY - h_dy, centerX + h_dx, centerY + h_dy);
       p.drawingContext.setLineDash([]);
@@ -195,7 +200,11 @@ export function createFibonacciSpiralCanvasSketch(
         // ドットを描画
         p.push();
         p.strokeWeight(2);
-        p.stroke(200);
+        if (showStroke) {
+          p.stroke(200);
+        } else {
+          p.noStroke();
+        }
 
         // 状態に応じて色を決定
         const isRed = currentState.dotStates[i];
@@ -279,6 +288,14 @@ export function createFibonacciSpiralCanvasSketch(
     p.mouseReleased = () => {
       isDragging = false;
       lastToggledIndex = -1;
+    };
+
+    // キーボードイベントハンドラー
+    p.keyPressed = () => {
+      // hキーでストロークの表示/非表示をトグル
+      if (p.key === "h" || p.key === "H") {
+        showStroke = !showStroke;
+      }
     };
 
     // 状態更新関数（外部から呼び出される）

@@ -77,6 +77,7 @@ export function createPixelCanvasSketch(
     let isDrawing = false;
     let isDragging = false;
     let lastDrawnCell: {x: number; y: number} | null = null;
+    let showStroke = true; // ストローク表示フラグ
 
     // グリフ移動用の変数
     let isMovingGlyph = false;
@@ -229,7 +230,11 @@ export function createPixelCanvasSketch(
         parentElement.appendChild(canvas.elt);
       }
       p.pixelDensity(1);
-      p.stroke(200);
+      if (showStroke) {
+        p.stroke(200);
+      } else {
+        p.noStroke();
+      }
       p.noSmooth(); // アンチエイリアスを無効化
 
       // 初期グリッド
@@ -306,6 +311,13 @@ export function createPixelCanvasSketch(
       // 中央揃えのオフセット計算
       const offsetX = (p.width - cols * stepX + scaledGapX) / 2;
       const offsetY = (p.height - rows * stepY + scaledGapY) / 2;
+
+      // ストローク設定
+      if (showStroke) {
+        p.stroke(200);
+      } else {
+        p.noStroke();
+      }
 
       // グリッド描画
       for (let y = 0; y < rows; y++) {
@@ -449,6 +461,14 @@ export function createPixelCanvasSketch(
       isDrawing = false;
       isDragging = false;
       lastDrawnCell = null;
+    };
+
+    // キーボードイベントハンドラー
+    p.keyPressed = () => {
+      // hキーでストロークの表示/非表示をトグル
+      if (p.key === "h" || p.key === "H") {
+        showStroke = !showStroke;
+      }
     };
 
     // 状態更新関数（外部から呼び出される）
