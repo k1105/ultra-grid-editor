@@ -221,7 +221,7 @@ export function createPixelCanvasSketch(
     };
 
     p.setup = () => {
-      const canvas = p.createCanvas(1000, 800);
+      const canvas = p.createCanvas(800, 800);
       // p5.jsの型定義の問題を回避するため、DOM要素を直接取得
       const parentElement =
         document.querySelector("[data-p5-container]") || document.body;

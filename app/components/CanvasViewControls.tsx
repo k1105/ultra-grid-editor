@@ -2,7 +2,7 @@
 
 import {useState} from "react";
 import Image from "next/image";
-import styles from "./PixelCanvas.module.css";
+import styles from "./CanvasViewControls.module.css";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
 

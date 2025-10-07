@@ -1,15 +1,10 @@
 .fibonacci-spiral-canvas {
   position: relative;
-  width: 100%;
-  height: 100%;
-  background-color: #1f2937;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .fibonacci-spiral-canvas > div:first-child {
-  width: 100%;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
