@@ -2,7 +2,7 @@
 
 import {useState} from "react";
 import styles from "./page.module.css";
-import PixelCanvas from "./components/PixelCanvas";
+import PixelCanvas from "./components/CanvasContainer";
 import EditorControls from "./components/EditorControls";
 // import PreviewWindows from "./components/PreviewWindows";
 import ModeSelector from "./components/ModeSelector";

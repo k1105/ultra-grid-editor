@@ -3,7 +3,7 @@
 import {useEffect, useRef, useState} from "react";
 import Image from "next/image";
 import CanvasViewControls from "./CanvasViewControls";
-import styles from "./PixelCanvas.module.css";
+import styles from "./CanvasContainer.module.css";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
 import FibonacciSpiralCanvas from "./FibonacciSpiralCanvas";
 import {

@@ -5,12 +5,7 @@ import {Icon} from "@iconify/react/dist/iconify.js";
 
 interface CommonControlsProps {
   className?: string;
-  canUndo?: boolean;
-  canRedo?: boolean;
-  onUndo?: () => void;
-  onRedo?: () => void;
   onReset: () => void;
-  showUndoRedo?: boolean;
   // Background Image props
   backgroundImage?: string | null;
   backgroundOpacity?: number;
@@ -22,20 +17,13 @@ interface CommonControlsProps {
   onSliderStart?: () => void;
   onSliderEnd?: () => void;
   showBackgroundImage?: boolean;
-  // Draw Mode props
-  drawMode?: "draw" | "erase" | "move";
-  onDrawModeChange?: (mode: "draw" | "erase" | "move") => void;
-  showDrawMode?: boolean;
+  // Import props
+  onImport?: () => void;
 }
 
 export default function CommonControls({
   className,
-  canUndo = false,
-  canRedo = false,
-  onUndo = () => {},
-  onRedo = () => {},
   onReset,
-  showUndoRedo = true,
   // Background Image props
   backgroundImage,
   backgroundOpacity = 0.5,
@@ -47,10 +35,8 @@ export default function CommonControls({
   onSliderStart,
   onSliderEnd,
   showBackgroundImage = false,
-  // Draw Mode props
-  drawMode = "draw",
-  onDrawModeChange,
-  showDrawMode = false,
+  // Import props
+  onImport,
 }: CommonControlsProps) {
   // イベント伝播を停止するハンドラー
   const handleMouseEvent = (e: React.MouseEvent) => {
@@ -79,85 +65,6 @@ export default function CommonControls({
       onTouchEnd={handleTouchEvent}
       onTouchMove={handleTouchEvent}
     >
-      {/* 描画モードボタン */}
-      {showDrawMode && onDrawModeChange && (
-        <div className={styles.modeButtons}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDrawModeChange("draw");
-            }}
-            onMouseDown={handleMouseEvent}
-            className={`${styles.modeButton} ${
-              drawMode === "draw" ? styles.active : ""
-            }`}
-          >
-            <Icon icon="ic:baseline-draw" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDrawModeChange("erase");
-            }}
-            onMouseDown={handleMouseEvent}
-            className={`${styles.modeButton} ${
-              drawMode === "erase" ? styles.active : ""
-            }`}
-          >
-            <Icon icon="fluent:eraser-24-filled" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDrawModeChange("move");
-            }}
-            onMouseDown={handleMouseEvent}
-            className={`${styles.modeButton} ${
-              drawMode === "move" ? styles.active : ""
-            }`}
-          >
-            <Icon icon="ic:round-back-hand" />
-          </button>
-        </div>
-      )}
-
-      {/* Undo/Redo Group */}
-      {showUndoRedo && (
-        <div className={styles.undoRedoGroup}>
-          <div className={styles.undoRedoLabel}>History</div>
-          <div className={styles.undoRedoButtons}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onUndo();
-              }}
-              disabled={!canUndo}
-              className={`${styles.undoButton} ${
-                !canUndo ? styles.disabled : ""
-              }`}
-              title="Undo (Ctrl+Z / Cmd+Z)"
-            >
-              <Icon icon="mdi:undo" />
-              Undo
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRedo();
-              }}
-              disabled={!canRedo}
-              className={`${styles.redoButton} ${
-                !canRedo ? styles.disabled : ""
-              }`}
-              title="Redo (Ctrl+Shift+Z / Cmd+Shift+Z)"
-            >
-              <Icon icon="mdi:redo" />
-              Redo
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Background Image Group */}
       {showBackgroundImage && (
         <div className={styles.backgroundImageGroup}>
@@ -278,6 +185,21 @@ export default function CommonControls({
               </label>
             </>
           )}
+        </div>
+      )}
+
+      {/* Import Link */}
+      {onImport && (
+        <div className={styles.importLinkContainer}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onImport();
+            }}
+            className={styles.importLink}
+          >
+            Import Older Version
+          </button>
         </div>
       )}
 

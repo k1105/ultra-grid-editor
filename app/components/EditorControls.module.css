@@ -8,11 +8,17 @@
   z-index: 1000;
 }
 
+.toolbarContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
 .modeButtons {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
 .modeButton {
@@ -184,7 +190,7 @@
   }
 }
 
-.exportImportGroup {
+.glyphGroup {
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 12px 12px 8px 12px;
@@ -195,7 +201,7 @@
   gap: 8px;
 }
 
-.exportImportLabel {
+.glyphLabel {
   font-size: 0.9rem;
   font-weight: bold;
   color: #374151;
@@ -207,56 +213,12 @@
   margin-bottom: 8px;
 }
 
-.exportImportButtons {
+.glyphButtons {
   display: flex;
   gap: 8px;
 }
 
-.exportButton,
-.importButton {
-  flex: 1;
-  padding: 8px 12px;
-  border: 2px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #6b7280;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
 .exportButton:hover {
-  border-color: #10b981;
-  color: #10b981;
-  background: #f0fdf4;
-}
-
-.importButton:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  background: #eff6ff;
-}
-
-.glyphImportButton {
-  padding: 8px 12px;
-  border: 2px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #6b7280;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.glyphImportButton:hover {
   border-color: #10b981;
   color: #10b981;
   background: #f0fdf4;
@@ -273,7 +235,8 @@
   gap: 8px;
 }
 
-.gridEditHeader {
+.gridEditHeader,
+.glyphHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -287,24 +250,48 @@
   letter-spacing: 0.02em;
 }
 
-.styleImportButton {
+.importButton {
+  border: none;
+  background: none;
   padding: 4px 6px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
   cursor: pointer;
   transition: all 0.2s ease;
   color: #6b7280;
-  font-size: 0.8rem;
+  font-size: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.styleImportButton:hover {
+.importButton:hover {
   border-color: #8b5cf6;
   color: #8b5cf6;
   background: #faf5ff;
+}
+
+.downloadButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 2px solid #059669;
+  border-radius: 4px;
+  background: #059669;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.downloadButton:hover {
+  border-color: #047857;
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.downloadButton:active {
+  transform: translateY(0);
 }
 
 .gapInputGroup {
@@ -398,6 +385,26 @@
   background: #f3f4f6;
   color: #9ca3af;
   border-color: #d1d5db;
+}
+
+.importLinkContainer {
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.importLink {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.importLink:hover {
+  color: #374151;
 }
 
 .resetButtonContainer {

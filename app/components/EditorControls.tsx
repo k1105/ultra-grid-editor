@@ -3,6 +3,7 @@
 import React from "react";
 import PixelEditorControls from "./PixelEditorControls";
 import FibonacciSpiralControls from "./FibonacciSpiralControls";
+import TopCommonControls from "./TopCommonControls";
 import CommonControls from "./CommonControls";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
@@ -46,14 +47,28 @@ export default function EditorControls({
     pixelEditor.setBackgroundImage(null);
   };
 
-  // 共通コントロールのプロパティを準備
-  const commonControlProps = {
+  // トップコントロールのプロパティを準備
+  const topCommonControlProps = {
     canUndo: mode === "pixel" ? pixelEditor.canUndo : false,
     canRedo: mode === "pixel" ? pixelEditor.canRedo : false,
     onUndo: mode === "pixel" ? pixelEditor.undo : () => {},
     onRedo: mode === "pixel" ? pixelEditor.redo : () => {},
-    onReset: currentContext.resetCanvas,
     showUndoRedo: mode === "pixel", // フィボナッチモードではUndo/Redoを無効化
+    // 描画モード関連のprops
+    showDrawMode: true,
+    drawMode:
+      mode === "pixel"
+        ? pixelEditor.state.drawMode
+        : fibonacciSpiral.state.drawMode,
+    onDrawModeChange:
+      mode === "pixel" ? pixelEditor.setDrawMode : fibonacciSpiral.setDrawMode,
+    // モード情報
+    currentMode: mode,
+  };
+
+  // 共通コントロールのプロパティを準備
+  const commonControlProps = {
+    onReset: currentContext.resetCanvas,
     showBackgroundImage: mode === "pixel", // 背景画像はピクセルモードのみ
     backgroundImage:
       mode === "pixel" ? pixelEditor.state.backgroundImage : null,
@@ -73,14 +88,100 @@ export default function EditorControls({
       mode === "pixel" ? () => pixelEditor.setShowGuides(true) : undefined,
     onSliderEnd:
       mode === "pixel" ? () => pixelEditor.setShowGuides(false) : undefined,
+    // Import機能
+    onImport:
+      mode === "pixel"
+        ? () => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.multiple = true;
+            input.onchange = async (e) => {
+              const files = Array.from(
+                (e.target as HTMLInputElement).files || []
+              );
+              if (files.length === 0) return;
+
+              try {
+                const {smartImportPixel} = await import(
+                  "../utils/exportImport"
+                );
+                await smartImportPixel(files[0], {
+                  setPixW: pixelEditor.setPixW,
+                  setPixH: pixelEditor.setPixH,
+                  setGapX: pixelEditor.setGapX,
+                  setGapY: pixelEditor.setGapY,
+                  updateGridSize: pixelEditor.updateGridSize,
+                  setCanvasWidthPercent: pixelEditor.setCanvasWidthPercent,
+                  setCanvasHeightPercent: pixelEditor.setCanvasHeightPercent,
+                  setZoom: pixelEditor.setZoom,
+                  setShowGuides: pixelEditor.setShowGuides,
+                  setPixelGrid: pixelEditor.setPixelGrid,
+                  setBackgroundImage: pixelEditor.setBackgroundImage,
+                  setBackgroundOpacity: pixelEditor.setBackgroundOpacity,
+                  setBackgroundImageScale: pixelEditor.setBackgroundImageScale,
+                });
+                alert("ファイルの読み込みが完了しました");
+              } catch (error) {
+                alert(
+                  error instanceof Error
+                    ? error.message
+                    : "無効なファイル形式です"
+                );
+              }
+            };
+            input.click();
+          }
+        : () => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.multiple = true;
+            input.onchange = async (e) => {
+              const files = Array.from(
+                (e.target as HTMLInputElement).files || []
+              );
+              if (files.length === 0) return;
+
+              try {
+                const {smartImportFibonacci} = await import(
+                  "../utils/exportImport"
+                );
+                await smartImportFibonacci(files[0], {
+                  setNumberOfCircles: fibonacciSpiral.setNumberOfCircles,
+                  setSpread: fibonacciSpiral.setSpread,
+                  setRotationAngle: fibonacciSpiral.setRotationAngle,
+                  setDeformationStrength:
+                    fibonacciSpiral.setDeformationStrength,
+                  setDotRadius: fibonacciSpiral.setDotRadius,
+                  setCanvasWidthPercent: fibonacciSpiral.setCanvasWidthPercent,
+                  setCanvasHeightPercent:
+                    fibonacciSpiral.setCanvasHeightPercent,
+                  setZoom: fibonacciSpiral.setZoom,
+                  setDotStates: fibonacciSpiral.setDotStates,
+                });
+                alert("ファイルの読み込みが完了しました");
+              } catch (error) {
+                alert(
+                  error instanceof Error
+                    ? error.message
+                    : "無効なファイル形式です"
+                );
+              }
+            };
+            input.click();
+          },
   };
 
   return (
     <div className={className}>
+      {/* トップ共通コントロール（描画モード & Undo/Redo） */}
+      <TopCommonControls {...topCommonControlProps} />
+
       {/* モード固有のコントロール */}
       {mode === "pixel" ? <PixelEditorControls /> : <FibonacciSpiralControls />}
 
-      {/* 共通コントロール */}
+      {/* 共通コントロール（背景画像、インポート、リセット） */}
       <CommonControls {...commonControlProps} />
     </div>
   );

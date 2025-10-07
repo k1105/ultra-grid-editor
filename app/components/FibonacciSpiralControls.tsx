@@ -1,13 +1,9 @@
 "use client";
 
-import {useState, useEffect, useCallback} from "react";
+import {useState, useCallback} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
-import {
-  exportFibonacciToZip,
-  smartImportFibonacci,
-} from "../utils/exportImport";
 import {
   importFibonacciStyleOnly,
   importFibonacciGlyphOnly,
@@ -31,41 +27,9 @@ export default function FibonacciSpiralControls({
     setCanvasHeightPercent,
     setZoom,
     setDotStates,
-    setDrawMode,
   } = useFibonacciSpiral();
 
-  const [isShiftPressed, setIsShiftPressed] = useState(false);
-  const [exportFileName, setExportFileName] = useState("fibonacci-spiral");
-
-  // キーボードイベントの監視
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Shift") {
-        setIsShiftPressed(true);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Shift") {
-        setIsShiftPressed(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, []);
-
-  // 現在の表示モードを計算（Shiftキーが押されている場合は反転）
-  const displayMode = isShiftPressed
-    ? state.drawMode === "draw"
-      ? "erase"
-      : "draw"
-    : state.drawMode;
+  const [exportFileName, setExportFileName] = useState("あ");
 
   // イベント伝播を停止するハンドラー
   const handleMouseEvent = (e: React.MouseEvent) => {
@@ -79,59 +43,6 @@ export default function FibonacciSpiralControls({
   const handleTouchEvent = (e: React.TouchEvent) => {
     e.stopPropagation();
   };
-
-  // エクスポート処理
-  const handleExport = useCallback(async () => {
-    try {
-      await exportFibonacciToZip(state, exportFileName);
-    } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "エクスポートに失敗しました"
-      );
-    }
-  }, [state, exportFileName]);
-
-  // インポート処理
-  const handleImport = useCallback(() => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.multiple = true; // 複数ファイル選択を可能にする
-    input.onchange = async (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files || []);
-      if (files.length === 0) return;
-
-      try {
-        await smartImportFibonacci(files[0], {
-          setNumberOfCircles,
-          setSpread,
-          setRotationAngle,
-          setDeformationStrength,
-          setDotRadius,
-          setCanvasWidthPercent,
-          setCanvasHeightPercent,
-          setZoom,
-          setDotStates,
-        });
-        alert("ファイルの読み込みが完了しました");
-      } catch (error) {
-        alert(
-          error instanceof Error ? error.message : "無効なファイル形式です"
-        );
-      }
-    };
-    input.click();
-  }, [
-    setNumberOfCircles,
-    setSpread,
-    setRotationAngle,
-    setDeformationStrength,
-    setDotRadius,
-    setCanvasWidthPercent,
-    setCanvasHeightPercent,
-    setZoom,
-    setDotStates,
-  ]);
 
   // styleのみのインポート処理
   const handleStyleImport = useCallback(() => {
@@ -212,107 +123,47 @@ export default function FibonacciSpiralControls({
       onTouchEnd={handleTouchEvent}
       onTouchMove={handleTouchEvent}
     >
-      {/* 描画モードボタン */}
-      <div className={styles.modeButtons}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setDrawMode("draw");
-          }}
-          onMouseDown={handleMouseEvent}
-          className={`${styles.modeButton} ${
-            displayMode === "draw" ? styles.active : ""
-          }`}
-        >
-          <Icon icon="ic:baseline-draw" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setDrawMode("erase");
-          }}
-          onMouseDown={handleMouseEvent}
-          className={`${styles.modeButton} ${
-            displayMode === "erase" ? styles.active : ""
-          }`}
-        >
-          <Icon icon="fluent:eraser-24-filled" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setDrawMode("move");
-          }}
-          onMouseDown={handleMouseEvent}
-          className={`${styles.modeButton} ${
-            displayMode === "move" ? styles.active : ""
-          }`}
-        >
-          <Icon icon="ic:round-back-hand" />
-        </button>
-      </div>
-
-      {/* Export/Import Group */}
-      <div className={styles.exportImportGroup}>
-        <div className={styles.exportImportLabel}>Export/Import</div>
-        <div className={styles.fileNameInput}>
-          <label>
-            File Name
-            <input
-              type="text"
-              value={exportFileName}
-              onChange={(e) => setExportFileName(e.target.value)}
-              placeholder="fibonacci-spiral"
-            />
-          </label>
-        </div>
-        <div className={styles.exportImportButtons}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleExport();
-            }}
-            className={styles.exportButton}
-          >
-            <Icon icon="mdi:export" />
-            Export (ZIP)
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleImport();
-            }}
-            className={styles.importButton}
-          >
-            <Icon icon="mdi:import" />
-            Import
-          </button>
+      {/* Glyph Group */}
+      <div className={styles.glyphGroup}>
+        <div className={styles.glyphHeader}>
+          <div className={styles.glyphLabel}>Glyph</div>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleGlyphImport();
             }}
-            className={styles.glyphImportButton}
+            className={styles.importButton}
             title="グリフファイルのみをインポート"
           >
-            <Icon icon="mdi:shape-outline" />
+            <Icon icon="mdi:import" />
           </button>
+        </div>
+        <div className={styles.glyphNameInput}>
+          <label>
+            文字の名前
+            <input
+              type="text"
+              value={exportFileName}
+              onChange={(e) => setExportFileName(e.target.value)}
+              placeholder="あ"
+            />
+          </label>
         </div>
       </div>
 
       {/* フィボナッチスパイラルコントロール */}
       <div className={styles.gridEditGroup}>
         <div className={styles.gridEditHeader}>
-          <div className={styles.gridEditLabel}>Grid Edit</div>
+          <div className={styles.gridEditLabel}>Grid</div>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleStyleImport();
             }}
-            className={styles.styleImportButton}
+            className={styles.importButton}
             title="スタイルファイルのみをインポート"
           >
-            <Icon icon="mdi:palette-outline" />
+            <Icon icon="mdi:import" />
           </button>
         </div>
 
