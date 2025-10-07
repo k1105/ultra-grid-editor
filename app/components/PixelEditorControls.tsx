@@ -4,7 +4,8 @@ import {useState, useCallback, useEffect} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
-import {exportToZip, importFromFile} from "../utils/exportImport";
+import {exportToZip, smartImportPixel} from "../utils/exportImport";
+import {importPixelStyleOnly, importPixelGlyphOnly} from "../utils/styleImport";
 
 interface PixelEditorControlsProps {
   className?: string;
@@ -26,6 +27,9 @@ export default function PixelEditorControls({
     setShowGuides,
     setPixelGrid,
     updateGridSize,
+    setBackgroundImage,
+    setBackgroundOpacity,
+    setBackgroundImageScale,
   } = usePixelEditor();
 
   const [isShiftPressed, setIsShiftPressed] = useState(false);
@@ -120,7 +124,13 @@ export default function PixelEditorControls({
   // 統合エクスポート処理（ZIP形式でSVGとJSONを同時ダウンロード）
   const handleExport = useCallback(async () => {
     try {
-      await exportToZip(state, exportFileName);
+      await exportToZip(
+        {
+          ...state,
+          backgroundImage: state.backgroundImage || undefined,
+        },
+        exportFileName
+      );
     } catch (error) {
       alert(
         error instanceof Error ? error.message : "エクスポートに失敗しました"
@@ -133,12 +143,13 @@ export default function PixelEditorControls({
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json";
+    input.multiple = true; // 複数ファイル選択を可能にする
     input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length === 0) return;
 
       try {
-        await importFromFile(file, {
+        await smartImportPixel(files[0], {
           setPixW,
           setPixH,
           setGapX,
@@ -149,6 +160,9 @@ export default function PixelEditorControls({
           setZoom,
           setShowGuides,
           setPixelGrid,
+          setBackgroundImage,
+          setBackgroundOpacity,
+          setBackgroundImageScale,
         });
         alert("ファイルの読み込みが完了しました");
       } catch (error) {
@@ -169,7 +183,83 @@ export default function PixelEditorControls({
     setZoom,
     setShowGuides,
     setPixelGrid,
+    setBackgroundImage,
+    setBackgroundOpacity,
+    setBackgroundImageScale,
   ]);
+
+  // styleのみのインポート処理
+  const handleStyleImport = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await importPixelStyleOnly(file, {
+          setPixW,
+          setPixH,
+          setGapX,
+          setGapY,
+          setCanvasWidthPercent,
+          setCanvasHeightPercent,
+          setZoom,
+          setShowGuides,
+          setBackgroundImage,
+          setBackgroundOpacity,
+          setBackgroundImageScale,
+        });
+        alert("スタイルファイルの読み込みが完了しました");
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "無効なスタイルファイル形式です"
+        );
+      }
+    };
+    input.click();
+  }, [
+    setPixW,
+    setPixH,
+    setGapX,
+    setGapY,
+    setCanvasWidthPercent,
+    setCanvasHeightPercent,
+    setZoom,
+    setShowGuides,
+    setBackgroundImage,
+    setBackgroundOpacity,
+    setBackgroundImageScale,
+  ]);
+
+  // glyphのみのインポート処理
+  const handleGlyphImport = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await importPixelGlyphOnly(file, {
+          updateGridSize,
+          setPixelGrid,
+        });
+        alert("グリフファイルの読み込みが完了しました");
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "無効なグリフファイル形式です"
+        );
+      }
+    };
+    input.click();
+  }, [updateGridSize, setPixelGrid]);
 
   // イベント伝播を停止するハンドラー
   const handleMouseEvent = (e: React.MouseEvent) => {
@@ -273,12 +363,34 @@ export default function PixelEditorControls({
             <Icon icon="mdi:import" />
             Import
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleGlyphImport();
+            }}
+            className={styles.glyphImportButton}
+            title="グリフファイルのみをインポート"
+          >
+            <Icon icon="mdi:shape-outline" />
+          </button>
         </div>
       </div>
 
       {/* Grid Edit Group */}
       <div className={styles.gridEditGroup}>
-        <div className={styles.gridEditLabel}>Grid Edit</div>
+        <div className={styles.gridEditHeader}>
+          <div className={styles.gridEditLabel}>Grid Edit</div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStyleImport();
+            }}
+            className={styles.styleImportButton}
+            title="スタイルファイルのみをインポート"
+          >
+            <Icon icon="mdi:palette-outline" />
+          </button>
+        </div>
         <label>
           Aspect Ratio
           <input

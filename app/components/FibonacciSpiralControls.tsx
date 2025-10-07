@@ -6,8 +6,12 @@ import {Icon} from "@iconify/react/dist/iconify.js";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
 import {
   exportFibonacciToZip,
-  importFibonacciFromFile,
+  smartImportFibonacci,
 } from "../utils/exportImport";
+import {
+  importFibonacciStyleOnly,
+  importFibonacciGlyphOnly,
+} from "../utils/styleImport";
 
 interface FibonacciSpiralControlsProps {
   className?: string;
@@ -92,12 +96,13 @@ export default function FibonacciSpiralControls({
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json";
+    input.multiple = true; // 複数ファイル選択を可能にする
     input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length === 0) return;
 
       try {
-        await importFibonacciFromFile(file, {
+        await smartImportFibonacci(files[0], {
           setNumberOfCircles,
           setSpread,
           setRotationAngle,
@@ -127,6 +132,71 @@ export default function FibonacciSpiralControls({
     setZoom,
     setDotStates,
   ]);
+
+  // styleのみのインポート処理
+  const handleStyleImport = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await importFibonacciStyleOnly(file, {
+          setSpread,
+          setRotationAngle,
+          setDeformationStrength,
+          setDotRadius,
+          setCanvasWidthPercent,
+          setCanvasHeightPercent,
+          setZoom,
+        });
+        alert("スタイルファイルの読み込みが完了しました");
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "無効なスタイルファイル形式です"
+        );
+      }
+    };
+    input.click();
+  }, [
+    setSpread,
+    setRotationAngle,
+    setDeformationStrength,
+    setDotRadius,
+    setCanvasWidthPercent,
+    setCanvasHeightPercent,
+    setZoom,
+  ]);
+
+  // glyphのみのインポート処理
+  const handleGlyphImport = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await importFibonacciGlyphOnly(file, {
+          setNumberOfCircles,
+          setDotStates,
+        });
+        alert("グリフファイルの読み込みが完了しました");
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "無効なグリフファイル形式です"
+        );
+      }
+    };
+    input.click();
+  }, [setNumberOfCircles, setDotStates]);
 
   return (
     <div
@@ -217,12 +287,34 @@ export default function FibonacciSpiralControls({
             <Icon icon="mdi:import" />
             Import
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleGlyphImport();
+            }}
+            className={styles.glyphImportButton}
+            title="グリフファイルのみをインポート"
+          >
+            <Icon icon="mdi:shape-outline" />
+          </button>
         </div>
       </div>
 
       {/* フィボナッチスパイラルコントロール */}
       <div className={styles.gridEditGroup}>
-        <div className={styles.gridEditLabel}>Grid Edit</div>
+        <div className={styles.gridEditHeader}>
+          <div className={styles.gridEditLabel}>Grid Edit</div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStyleImport();
+            }}
+            className={styles.styleImportButton}
+            title="スタイルファイルのみをインポート"
+          >
+            <Icon icon="mdi:palette-outline" />
+          </button>
+        </div>
 
         <label>
           円の数 (n)

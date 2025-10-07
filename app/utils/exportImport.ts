@@ -1,6 +1,61 @@
 import JSZip from "jszip";
 
-// エクスポートデータの型定義
+// 新しいデータ構造の型定義
+
+// glyph.json の型定義（セル情報とキャンバスサイズ）
+export interface GlyphData {
+  version: string;
+  mode: "pixel" | "fibonacci";
+  canvasSize: {
+    width: number;
+    height: number;
+  };
+  // ピクセルモード用
+  pixelData?: {
+    gridSize: number;
+    pixelData: string[]; // 16進数文字列の配列
+  };
+  // フィボナッチモード用
+  fibonacciData?: {
+    numberOfCircles: number;
+    dotStates: boolean[];
+  };
+  exportDate: string;
+}
+
+// style.json の型定義（グリッド設定とその他）
+export interface StyleData {
+  version: string;
+  mode: "pixel" | "fibonacci";
+  // ピクセルモード用
+  pixelStyle?: {
+    pixW: number;
+    pixH: number;
+    gapX: number;
+    gapY: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+    showGuides: boolean;
+    backgroundImage?: string;
+    backgroundOpacity: number;
+    backgroundImageScale: number;
+    aspectRatio: number;
+  };
+  // フィボナッチモード用
+  fibonacciStyle?: {
+    spread: number;
+    rotationAngle: number;
+    deformationStrength: number;
+    dotRadius: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+  };
+  exportDate: string;
+}
+
+// 後方互換性のための古いエクスポートデータの型定義
 export interface ExportData {
   version: string;
   gridInfo: {
@@ -114,7 +169,7 @@ export const generateSVG = (
 </svg>`;
 };
 
-// 統合エクスポート処理（ZIP形式でSVGとJSONを同時ダウンロード）
+// ピクセルモード用エクスポート処理
 export const exportToZip = async (
   state: {
     pixW: number;
@@ -127,31 +182,48 @@ export const exportToZip = async (
     zoom: number;
     showGuides: boolean;
     pixelGrid: boolean[][];
+    backgroundImage?: string;
+    backgroundOpacity: number;
+    backgroundImageScale: number;
   },
   exportFileName: string
 ): Promise<void> => {
   const zip = new JSZip();
 
-  // JSONデータの準備
-  const exportData: ExportData = {
-    version: "1.0.0",
-    gridInfo: {
+  // glyph.json の準備
+  const glyphData: GlyphData = {
+    version: "2.0.0",
+    mode: "pixel",
+    canvasSize: {
+      width: state.gridSize * (state.pixW + state.gapX) - state.gapX,
+      height: state.gridSize * (state.pixH + state.gapY) - state.gapY,
+    },
+    pixelData: {
+      gridSize: state.gridSize,
+      pixelData: compressPixelData(state.pixelGrid),
+    },
+    exportDate: new Date().toISOString(),
+  };
+
+  // style.json の準備
+  const styleData: StyleData = {
+    version: "2.0.0",
+    mode: "pixel",
+    pixelStyle: {
       pixW: state.pixW,
       pixH: state.pixH,
       gapX: state.gapX,
       gapY: state.gapY,
-      gridSize: state.gridSize,
-    },
-    canvasState: {
-      widthPercent: state.canvasWidthPercent,
-      heightPercent: state.canvasHeightPercent,
+      canvasWidthPercent: state.canvasWidthPercent,
+      canvasHeightPercent: state.canvasHeightPercent,
       zoom: state.zoom,
       showGuides: state.showGuides,
+      backgroundImage: state.backgroundImage,
+      backgroundOpacity: state.backgroundOpacity,
+      backgroundImageScale: state.backgroundImageScale,
+      aspectRatio: state.pixW / state.pixH,
     },
-    pixelData: compressPixelData(state.pixelGrid),
     exportDate: new Date().toISOString(),
-    // アスペクト比情報を追加（後方互換性のため）
-    aspectRatio: state.pixW / state.pixH,
   };
 
   // SVGデータの準備
@@ -164,7 +236,8 @@ export const exportToZip = async (
   );
 
   // ZIPファイルにファイルを追加
-  zip.file(`${exportFileName}.json`, JSON.stringify(exportData, null, 2));
+  zip.file(`${exportFileName}-glyph.json`, JSON.stringify(glyphData, null, 2));
+  zip.file(`${exportFileName}-style.json`, JSON.stringify(styleData, null, 2));
   zip.file(`${exportFileName}.svg`, svgContent);
 
   // ZIPファイルを生成してダウンロード
@@ -297,7 +370,7 @@ export const generateFibonacciSVG = (
 </svg>`;
 };
 
-// Fibonacciスパイラル用の統合エクスポート処理
+// フィボナッチモード用エクスポート処理
 export const exportFibonacciToZip = async (
   state: {
     numberOfCircles: number;
@@ -314,22 +387,42 @@ export const exportFibonacciToZip = async (
 ): Promise<void> => {
   const zip = new JSZip();
 
-  // JSONデータの準備
-  const exportData: FibonacciExportData = {
-    version: "1.0.0",
-    spiralInfo: {
+  // 最大範囲を計算してキャンバスサイズを決定
+  const maxRadius =
+    state.spread *
+    Math.sqrt(state.numberOfCircles - 1) *
+    2.2 *
+    Math.max(state.deformationStrength, 1);
+  const canvasSize = Math.ceil(maxRadius * 2.5); // 余白を含める
+
+  // glyph.json の準備
+  const glyphData: GlyphData = {
+    version: "2.0.0",
+    mode: "fibonacci",
+    canvasSize: {
+      width: canvasSize,
+      height: canvasSize,
+    },
+    fibonacciData: {
       numberOfCircles: state.numberOfCircles,
+      dotStates: state.dotStates,
+    },
+    exportDate: new Date().toISOString(),
+  };
+
+  // style.json の準備
+  const styleData: StyleData = {
+    version: "2.0.0",
+    mode: "fibonacci",
+    fibonacciStyle: {
       spread: state.spread,
       rotationAngle: state.rotationAngle,
       deformationStrength: state.deformationStrength,
       dotRadius: state.dotRadius,
-    },
-    canvasState: {
-      widthPercent: state.canvasWidthPercent,
-      heightPercent: state.canvasHeightPercent,
+      canvasWidthPercent: state.canvasWidthPercent,
+      canvasHeightPercent: state.canvasHeightPercent,
       zoom: state.zoom,
     },
-    dotStates: state.dotStates,
     exportDate: new Date().toISOString(),
   };
 
@@ -344,7 +437,8 @@ export const exportFibonacciToZip = async (
   );
 
   // ZIPファイルにファイルを追加
-  zip.file(`${exportFileName}.json`, JSON.stringify(exportData, null, 2));
+  zip.file(`${exportFileName}-glyph.json`, JSON.stringify(glyphData, null, 2));
+  zip.file(`${exportFileName}-style.json`, JSON.stringify(styleData, null, 2));
   zip.file(`${exportFileName}.svg`, svgContent);
 
   // ZIPファイルを生成してダウンロード
@@ -364,7 +458,90 @@ export const exportFibonacciToZip = async (
   }
 };
 
-// Fibonacciスパイラル用のインポート処理
+// 新しい形式でのフィボナッチモード用インポート処理（glyph.json + style.json）
+export const importFibonacciFromFilesV2 = async (
+  glyphFile: File,
+  styleFile: File,
+  callbacks: {
+    setNumberOfCircles: (value: number) => void;
+    setSpread: (value: number) => void;
+    setRotationAngle: (value: number) => void;
+    setDeformationStrength: (value: number) => void;
+    setDotRadius: (value: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setDotStates: (states: boolean[]) => void;
+  }
+): Promise<void> => {
+  try {
+    // glyph.json を読み込み
+    const glyphData = await new Promise<GlyphData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as GlyphData;
+          if (!data.version || data.mode !== "fibonacci") {
+            throw new Error("Invalid glyph file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なglyphファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("glyphファイルの読み込みに失敗しました"));
+      reader.readAsText(glyphFile);
+    });
+
+    // style.json を読み込み
+    const styleData = await new Promise<StyleData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as StyleData;
+          if (!data.version || data.mode !== "fibonacci") {
+            throw new Error("Invalid style file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なstyleファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("styleファイルの読み込みに失敗しました"));
+      reader.readAsText(styleFile);
+    });
+
+    // ドット情報を更新
+    if (glyphData.fibonacciData) {
+      callbacks.setNumberOfCircles(glyphData.fibonacciData.numberOfCircles);
+      callbacks.setDotStates(glyphData.fibonacciData.dotStates);
+    }
+
+    // スタイル情報を更新
+    if (styleData.fibonacciStyle) {
+      callbacks.setSpread(styleData.fibonacciStyle.spread);
+      callbacks.setRotationAngle(styleData.fibonacciStyle.rotationAngle);
+      callbacks.setDeformationStrength(
+        styleData.fibonacciStyle.deformationStrength
+      );
+      callbacks.setDotRadius(styleData.fibonacciStyle.dotRadius);
+      callbacks.setCanvasWidthPercent(
+        styleData.fibonacciStyle.canvasWidthPercent
+      );
+      callbacks.setCanvasHeightPercent(
+        styleData.fibonacciStyle.canvasHeightPercent
+      );
+      callbacks.setZoom(styleData.fibonacciStyle.zoom);
+    }
+  } catch (error) {
+    console.error("Failed to import files:", error);
+    throw error;
+  }
+};
+
+// 後方互換性のための古い形式でのフィボナッチインポート処理
 export const importFibonacciFromFile = (
   file: File,
   callbacks: {
@@ -425,7 +602,113 @@ export const importFibonacciFromFile = (
   });
 };
 
-// インポート処理
+// 新しい形式でのピクセルモード用インポート処理（glyph.json + style.json）
+export const importPixelFromFilesV2 = async (
+  glyphFile: File,
+  styleFile: File,
+  callbacks: {
+    setPixW: (value: number) => void;
+    setPixH: (value: number) => void;
+    setGapX: (value: number) => void;
+    setGapY: (value: number) => void;
+    updateGridSize: (size: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setShowGuides: (value: boolean) => void;
+    setPixelGrid: (grid: boolean[][]) => void;
+    setBackgroundImage?: (image: string) => void;
+    setBackgroundOpacity?: (opacity: number) => void;
+    setBackgroundImageScale?: (scale: number) => void;
+  }
+): Promise<void> => {
+  try {
+    // glyph.json を読み込み
+    const glyphData = await new Promise<GlyphData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as GlyphData;
+          if (!data.version || data.mode !== "pixel") {
+            throw new Error("Invalid glyph file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なglyphファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("glyphファイルの読み込みに失敗しました"));
+      reader.readAsText(glyphFile);
+    });
+
+    // style.json を読み込み
+    const styleData = await new Promise<StyleData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as StyleData;
+          if (!data.version || data.mode !== "pixel") {
+            throw new Error("Invalid style file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なstyleファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("styleファイルの読み込みに失敗しました"));
+      reader.readAsText(styleFile);
+    });
+
+    // グリッド情報を更新
+    if (glyphData.pixelData) {
+      callbacks.updateGridSize(glyphData.pixelData.gridSize);
+      if (glyphData.pixelData.pixelData) {
+        callbacks.setPixelGrid(
+          decompressPixelData(
+            glyphData.pixelData.pixelData,
+            glyphData.pixelData.gridSize
+          )
+        );
+      }
+    }
+
+    // スタイル情報を更新
+    if (styleData.pixelStyle) {
+      callbacks.setPixW(styleData.pixelStyle.pixW);
+      callbacks.setPixH(styleData.pixelStyle.pixH);
+      callbacks.setGapX(styleData.pixelStyle.gapX);
+      callbacks.setGapY(styleData.pixelStyle.gapY);
+      callbacks.setCanvasWidthPercent(styleData.pixelStyle.canvasWidthPercent);
+      callbacks.setCanvasHeightPercent(
+        styleData.pixelStyle.canvasHeightPercent
+      );
+      callbacks.setZoom(styleData.pixelStyle.zoom);
+      callbacks.setShowGuides(styleData.pixelStyle.showGuides);
+
+      if (
+        callbacks.setBackgroundImage &&
+        styleData.pixelStyle.backgroundImage
+      ) {
+        callbacks.setBackgroundImage(styleData.pixelStyle.backgroundImage);
+      }
+      if (callbacks.setBackgroundOpacity) {
+        callbacks.setBackgroundOpacity(styleData.pixelStyle.backgroundOpacity);
+      }
+      if (callbacks.setBackgroundImageScale) {
+        callbacks.setBackgroundImageScale(
+          styleData.pixelStyle.backgroundImageScale
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Failed to import files:", error);
+    throw error;
+  }
+};
+
+// 後方互換性のための古い形式でのインポート処理
 export const importFromFile = (
   file: File,
   callbacks: {
@@ -486,4 +769,166 @@ export const importFromFile = (
       reject(new Error("ファイルの読み込みに失敗しました"));
     reader.readAsText(file);
   });
+};
+
+// ファイル形式の自動検出とスマートなimport処理
+export const smartImportPixel = async (
+  file: File,
+  callbacks: {
+    setPixW: (value: number) => void;
+    setPixH: (value: number) => void;
+    setGapX: (value: number) => void;
+    setGapY: (value: number) => void;
+    updateGridSize: (size: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setShowGuides: (value: boolean) => void;
+    setPixelGrid: (grid: boolean[][]) => void;
+    setBackgroundImage?: (image: string) => void;
+    setBackgroundOpacity?: (opacity: number) => void;
+    setBackgroundImageScale?: (scale: number) => void;
+  }
+): Promise<void> => {
+  // ファイル名から形式を推測
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.includes("-glyph.json")) {
+    throw new Error(
+      "新しい形式では、glyph.jsonとstyle.jsonの両方のファイルが必要です。両方のファイルを選択してください。"
+    );
+  }
+
+  if (fileName.includes("-style.json")) {
+    throw new Error(
+      "新しい形式では、glyph.jsonとstyle.jsonの両方のファイルが必要です。両方のファイルを選択してください。"
+    );
+  }
+
+  // 古い形式として処理
+  return importFromFile(file, callbacks);
+};
+
+// 複数ファイルでのスマートなimport処理
+export const smartImportPixelMultiple = async (
+  files: File[],
+  callbacks: {
+    setPixW: (value: number) => void;
+    setPixH: (value: number) => void;
+    setGapX: (value: number) => void;
+    setGapY: (value: number) => void;
+    updateGridSize: (size: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setShowGuides: (value: boolean) => void;
+    setPixelGrid: (grid: boolean[][]) => void;
+    setBackgroundImage?: (image: string) => void;
+    setBackgroundOpacity?: (opacity: number) => void;
+    setBackgroundImageScale?: (scale: number) => void;
+  }
+): Promise<void> => {
+  if (files.length === 1) {
+    return smartImportPixel(files[0], callbacks);
+  }
+
+  if (files.length === 2) {
+    // ファイル名からglyphとstyleを特定
+    let glyphFile: File | null = null;
+    let styleFile: File | null = null;
+
+    for (const file of files) {
+      const fileName = file.name.toLowerCase();
+      if (fileName.includes("-glyph.json")) {
+        glyphFile = file;
+      } else if (fileName.includes("-style.json")) {
+        styleFile = file;
+      }
+    }
+
+    if (glyphFile && styleFile) {
+      return importPixelFromFilesV2(glyphFile, styleFile, callbacks);
+    }
+  }
+
+  throw new Error(
+    "無効なファイル選択です。単一の古い形式ファイル、または新しい形式のglyph.jsonとstyle.jsonの両方を選択してください。"
+  );
+};
+
+// フィボナッチモード用のスマートなimport処理
+export const smartImportFibonacci = async (
+  file: File,
+  callbacks: {
+    setNumberOfCircles: (value: number) => void;
+    setSpread: (value: number) => void;
+    setRotationAngle: (value: number) => void;
+    setDeformationStrength: (value: number) => void;
+    setDotRadius: (value: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setDotStates: (states: boolean[]) => void;
+  }
+): Promise<void> => {
+  // ファイル名から形式を推測
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.includes("-glyph.json")) {
+    throw new Error(
+      "新しい形式では、glyph.jsonとstyle.jsonの両方のファイルが必要です。両方のファイルを選択してください。"
+    );
+  }
+
+  if (fileName.includes("-style.json")) {
+    throw new Error(
+      "新しい形式では、glyph.jsonとstyle.jsonの両方のファイルが必要です。両方のファイルを選択してください。"
+    );
+  }
+
+  // 古い形式として処理
+  return importFibonacciFromFile(file, callbacks);
+};
+
+// フィボナッチモード用の複数ファイルでのスマートなimport処理
+export const smartImportFibonacciMultiple = async (
+  files: File[],
+  callbacks: {
+    setNumberOfCircles: (value: number) => void;
+    setSpread: (value: number) => void;
+    setRotationAngle: (value: number) => void;
+    setDeformationStrength: (value: number) => void;
+    setDotRadius: (value: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setDotStates: (states: boolean[]) => void;
+  }
+): Promise<void> => {
+  if (files.length === 1) {
+    return smartImportFibonacci(files[0], callbacks);
+  }
+
+  if (files.length === 2) {
+    // ファイル名からglyphとstyleを特定
+    let glyphFile: File | null = null;
+    let styleFile: File | null = null;
+
+    for (const file of files) {
+      const fileName = file.name.toLowerCase();
+      if (fileName.includes("-glyph.json")) {
+        glyphFile = file;
+      } else if (fileName.includes("-style.json")) {
+        styleFile = file;
+      }
+    }
+
+    if (glyphFile && styleFile) {
+      return importFibonacciFromFilesV2(glyphFile, styleFile, callbacks);
+    }
+  }
+
+  throw new Error(
+    "無効なファイル選択です。単一の古い形式ファイル、または新しい形式のglyph.jsonとstyle.jsonの両方を選択してください。"
+  );
 };
