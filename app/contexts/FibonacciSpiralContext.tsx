@@ -20,6 +20,7 @@ interface FibonacciSpiralState {
   zoom: number;
   canvasWidthPercent: number;
   canvasHeightPercent: number;
+  exportFileName: string;
 }
 
 // コンテキストの型定義
@@ -35,6 +36,7 @@ interface FibonacciSpiralContextType {
   setCanvasWidthPercent: (value: number) => void;
   setCanvasHeightPercent: (value: number) => void;
   setDotStates: (states: boolean[]) => void;
+  setExportFileName: (name: string) => void;
   toggleDot: (index: number) => void;
   resetCanvas: () => void;
 }
@@ -56,6 +58,7 @@ const initialState: FibonacciSpiralState = {
   zoom: 1,
   canvasWidthPercent: 100,
   canvasHeightPercent: 100,
+  exportFileName: "あ",
 };
 
 // Providerコンポーネント
@@ -142,6 +145,13 @@ export function FibonacciSpiralProvider({
     }));
   }, []);
 
+  const setExportFileName = useCallback((name: string) => {
+    setState((prev) => ({
+      ...prev,
+      exportFileName: name,
+    }));
+  }, []);
+
   const toggleDot = useCallback((index: number) => {
     setState((prev) => ({
       ...prev,
@@ -170,6 +180,7 @@ export function FibonacciSpiralProvider({
     setCanvasWidthPercent,
     setCanvasHeightPercent,
     setDotStates,
+    setExportFileName,
     toggleDot,
     resetCanvas,
   };

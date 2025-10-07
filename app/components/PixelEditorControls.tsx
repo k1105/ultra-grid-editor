@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useCallback} from "react";
+import {useCallback} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
@@ -28,9 +28,8 @@ export default function PixelEditorControls({
     setBackgroundImage,
     setBackgroundOpacity,
     setBackgroundImageScale,
+    setExportFileName,
   } = usePixelEditor();
-
-  const [exportFileName, setExportFileName] = useState("あ");
 
   // 最大ピクセルサイズの制限
   const MAX_PIXEL_SIZE = 40;
@@ -202,7 +201,7 @@ export default function PixelEditorControls({
             文字の名前
             <input
               type="text"
-              value={exportFileName}
+              value={state.exportFileName}
               onChange={(e) => setExportFileName(e.target.value)}
               placeholder="あ"
             />

@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useCallback} from "react";
+import {useCallback} from "react";
 import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
@@ -27,9 +27,8 @@ export default function FibonacciSpiralControls({
     setCanvasHeightPercent,
     setZoom,
     setDotStates,
+    setExportFileName,
   } = useFibonacciSpiral();
-
-  const [exportFileName, setExportFileName] = useState("あ");
 
   // イベント伝播を停止するハンドラー
   const handleMouseEvent = (e: React.MouseEvent) => {
@@ -143,7 +142,7 @@ export default function FibonacciSpiralControls({
             文字の名前
             <input
               type="text"
-              value={exportFileName}
+              value={state.exportFileName}
               onChange={(e) => setExportFileName(e.target.value)}
               placeholder="あ"
             />

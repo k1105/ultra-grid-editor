@@ -75,7 +75,9 @@ export default function TopCommonControls({
   const handleExport = async () => {
     try {
       const fileName =
-        currentMode === "pixel" ? "pixel-grid" : "fibonacci-spiral";
+        currentMode === "pixel"
+          ? pixelState.exportFileName || "pixel-grid"
+          : fibonacciState.exportFileName || "fibonacci-spiral";
 
       if (currentMode === "pixel") {
         await exportToZip(

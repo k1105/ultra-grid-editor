@@ -25,6 +25,7 @@ interface PixelEditorState {
   backgroundImage: string | null;
   backgroundOpacity: number;
   backgroundImageScale: number;
+  exportFileName: string;
 }
 
 // 履歴の型定義
@@ -55,6 +56,7 @@ interface PixelEditorContextType {
   setBackgroundImage: (image: string | null) => void;
   setBackgroundOpacity: (opacity: number) => void;
   setBackgroundImageScale: (scale: number) => void;
+  setExportFileName: (name: string) => void;
   resetCanvas: () => void;
   updateGridSize: (size: number) => void;
   undo: () => void;
@@ -85,6 +87,7 @@ const initialState: PixelEditorState = {
   backgroundImage: null,
   backgroundOpacity: 0.5,
   backgroundImageScale: 1.0,
+  exportFileName: "あ",
 };
 
 // グリッドを初期化する関数
@@ -437,6 +440,10 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     setState((prev) => ({...prev, backgroundImageScale: scale}));
   }, []);
 
+  const setExportFileName = useCallback((name: string) => {
+    setState((prev) => ({...prev, exportFileName: name}));
+  }, []);
+
   const resetCanvas = useCallback(() => {
     setState((prev) => {
       const newGrid = initializeGrid(prev.gridSize);
@@ -483,6 +490,7 @@ export function PixelEditorProvider({children}: PixelEditorProviderProps) {
     setBackgroundImage,
     setBackgroundOpacity,
     setBackgroundImageScale,
+    setExportFileName,
     resetCanvas,
     updateGridSize,
     undo,
