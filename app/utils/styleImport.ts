@@ -1,3 +1,54 @@
+// 型定義
+interface PixelStyleData {
+  version: string;
+  mode: "pixel";
+  pixelStyle: {
+    pixW: number;
+    pixH: number;
+    gapX: number;
+    gapY: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+    showGuides: boolean;
+    backgroundImage?: string;
+    backgroundOpacity: number;
+    backgroundImageScale: number;
+  };
+}
+
+interface FibonacciStyleData {
+  version: string;
+  mode: "fibonacci";
+  fibonacciStyle: {
+    spread: number;
+    rotationAngle: number;
+    deformationStrength: number;
+    dotRadius: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+  };
+}
+
+interface PixelGlyphData {
+  version: string;
+  mode: "pixel";
+  pixelData: {
+    gridSize: number;
+    pixelData?: string[];
+  };
+}
+
+interface FibonacciGlyphData {
+  version: string;
+  mode: "fibonacci";
+  fibonacciData: {
+    numberOfCircles: number;
+    dotStates: boolean[];
+  };
+}
+
 // styleのみをインポートする関数（ピクセルモード用）
 export const importPixelStyleOnly = async (
   file: File,
@@ -16,7 +67,7 @@ export const importPixelStyleOnly = async (
   }
 ): Promise<void> => {
   try {
-    const styleData = await new Promise<any>((resolve, reject) => {
+    const styleData = await new Promise<PixelStyleData>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
@@ -82,23 +133,25 @@ export const importFibonacciStyleOnly = async (
   }
 ): Promise<void> => {
   try {
-    const styleData = await new Promise<any>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          if (!data.version || data.mode !== "fibonacci") {
-            throw new Error("Invalid style file format");
+    const styleData = await new Promise<FibonacciStyleData>(
+      (resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target?.result as string);
+            if (!data.version || data.mode !== "fibonacci") {
+              throw new Error("Invalid style file format");
+            }
+            resolve(data);
+          } catch {
+            reject(new Error("無効なstyleファイル形式です"));
           }
-          resolve(data);
-        } catch {
-          reject(new Error("無効なstyleファイル形式です"));
-        }
-      };
-      reader.onerror = () =>
-        reject(new Error("styleファイルの読み込みに失敗しました"));
-      reader.readAsText(file);
-    });
+        };
+        reader.onerror = () =>
+          reject(new Error("styleファイルの読み込みに失敗しました"));
+        reader.readAsText(file);
+      }
+    );
 
     // スタイル情報のみを更新
     if (styleData.fibonacciStyle) {
@@ -131,7 +184,7 @@ export const importPixelGlyphOnly = async (
   }
 ): Promise<void> => {
   try {
-    const glyphData = await new Promise<any>((resolve, reject) => {
+    const glyphData = await new Promise<PixelGlyphData>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
@@ -204,23 +257,25 @@ export const importFibonacciGlyphOnly = async (
   }
 ): Promise<void> => {
   try {
-    const glyphData = await new Promise<any>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          if (!data.version || data.mode !== "fibonacci") {
-            throw new Error("Invalid glyph file format");
+    const glyphData = await new Promise<FibonacciGlyphData>(
+      (resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target?.result as string);
+            if (!data.version || data.mode !== "fibonacci") {
+              throw new Error("Invalid glyph file format");
+            }
+            resolve(data);
+          } catch {
+            reject(new Error("無効なglyphファイル形式です"));
           }
-          resolve(data);
-        } catch {
-          reject(new Error("無効なglyphファイル形式です"));
-        }
-      };
-      reader.onerror = () =>
-        reject(new Error("glyphファイルの読み込みに失敗しました"));
-      reader.readAsText(file);
-    });
+        };
+        reader.onerror = () =>
+          reject(new Error("glyphファイルの読み込みに失敗しました"));
+        reader.readAsText(file);
+      }
+    );
 
     // glyph情報のみを更新
     if (glyphData.fibonacciData) {
