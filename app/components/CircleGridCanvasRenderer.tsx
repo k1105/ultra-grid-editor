@@ -10,6 +10,8 @@ declare global {
       layers: number;
       radius: number;
       spacingFactor: number;
+      rotationAngle: number;
+      deformationStrength: number;
       dotStates: boolean[];
       drawMode: "draw" | "erase" | "move";
       zoom: number;
@@ -27,6 +29,8 @@ export interface CircleGridCanvasState {
   layers: number;
   radius: number;
   spacingFactor: number;
+  rotationAngle: number;
+  deformationStrength: number;
   dotStates: boolean[];
   drawMode: "draw" | "erase" | "move";
   zoom: number;
@@ -135,6 +139,7 @@ export function createCircleGridCanvasSketch(
 
       const centerX = width / 2;
       const centerY = height / 2;
+      const rotationAngleRad = (currentState.rotationAngle * Math.PI) / 180;
 
       // 背景を描画
       p.background(255);
@@ -147,7 +152,7 @@ export function createCircleGridCanvasSketch(
 
       // 各レイヤーを描画
       for (let i = 0; i < currentState.layers; i++) {
-        const radius = p.map(i, 0, currentState.layers - 1, 0, width / 2.2);
+        const radius = p.map(i, 0, currentState.layers - 1, 0, width / 2.8);
         const circleSize = currentState.radius;
         const circumference = p.TWO_PI * radius;
         const circlesPerLayer = Math.max(
@@ -159,8 +164,30 @@ export function createCircleGridCanvasSketch(
           const angle =
             (p.TWO_PI * j) / circlesPerLayer +
             ((i % 2) * Math.PI) / circlesPerLayer;
-          let x = centerX + Math.cos(angle) * radius;
-          let y = centerY + Math.sin(angle) * radius;
+
+          // 基本位置
+          const x_rel = Math.cos(angle) * radius;
+          const y_rel = Math.sin(angle) * radius;
+
+          // 回転を適用（中心を原点として）
+          const cos_a = Math.cos(-rotationAngleRad);
+          const sin_a = Math.sin(-rotationAngleRad);
+          const x_rot = x_rel * cos_a - y_rel * sin_a;
+          const y_rot = x_rel * sin_a + y_rel * cos_a;
+
+          // 変形を適用（X軸方向に伸縮）
+          const x_stretched = x_rot * currentState.deformationStrength;
+          const y_stretched = y_rot;
+
+          // 逆回転を適用
+          const cos_b = Math.cos(rotationAngleRad);
+          const sin_b = Math.sin(rotationAngleRad);
+          const x_final_rel = x_stretched * cos_b - y_stretched * sin_b;
+          const y_final_rel = x_stretched * sin_b + y_stretched * cos_b;
+
+          // 最終位置（中心からの相対位置を絶対位置に変換）
+          let x = centerX + x_final_rel;
+          let y = centerY + y_final_rel;
 
           // キャンバスサイズの変更を適用
           x = centerX + (x - centerX) * (effectiveWidth / 100);

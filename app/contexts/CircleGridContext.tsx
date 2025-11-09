@@ -13,6 +13,8 @@ interface CircleGridState {
   layers: number;
   radius: number;
   spacingFactor: number;
+  rotationAngle: number;
+  deformationStrength: number;
   dotStates: boolean[];
   drawMode: "draw" | "erase" | "move";
   zoom: number;
@@ -27,6 +29,8 @@ interface CircleGridContextType {
   setLayers: (value: number) => void;
   setRadius: (value: number) => void;
   setSpacingFactor: (value: number) => void;
+  setRotationAngle: (value: number) => void;
+  setDeformationStrength: (value: number) => void;
   setDrawMode: (mode: "draw" | "erase" | "move") => void;
   setZoom: (value: number) => void;
   setCanvasWidthPercent: (value: number) => void;
@@ -44,9 +48,11 @@ const CircleGridContext = createContext<CircleGridContextType | undefined>(
 
 // 初期状態
 const initialState: CircleGridState = {
-  layers: 6,
-  radius: 20,
+  layers: 5,
+  radius: 48,
   spacingFactor: 1.4,
+  rotationAngle: 0,
+  deformationStrength: 1.0,
   dotStates: Array.from({length: 5000}, () => false), // 最大5000個のドット
   drawMode: "draw",
   zoom: 1,
@@ -88,6 +94,20 @@ export function CircleGridProvider({children}: CircleGridProviderProps) {
     setState((prev) => ({
       ...prev,
       spacingFactor: value,
+    }));
+  }, []);
+
+  const setRotationAngle = useCallback((value: number) => {
+    setState((prev) => ({
+      ...prev,
+      rotationAngle: value,
+    }));
+  }, []);
+
+  const setDeformationStrength = useCallback((value: number) => {
+    setState((prev) => ({
+      ...prev,
+      deformationStrength: value,
     }));
   }, []);
 
@@ -154,6 +174,8 @@ export function CircleGridProvider({children}: CircleGridProviderProps) {
     setLayers,
     setRadius,
     setSpacingFactor,
+    setRotationAngle,
+    setDeformationStrength,
     setDrawMode,
     setZoom,
     setCanvasWidthPercent,

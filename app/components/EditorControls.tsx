@@ -205,6 +205,8 @@ export default function EditorControls({
                     setLayers: circleGrid.setLayers,
                     setRadius: circleGrid.setRadius,
                     setSpacingFactor: circleGrid.setSpacingFactor,
+                    setRotationAngle: circleGrid.setRotationAngle,
+                    setDeformationStrength: circleGrid.setDeformationStrength,
                     setCanvasWidthPercent: circleGrid.setCanvasWidthPercent,
                     setCanvasHeightPercent: circleGrid.setCanvasHeightPercent,
                     setZoom: circleGrid.setZoom,

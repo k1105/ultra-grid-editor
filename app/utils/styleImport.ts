@@ -55,6 +55,8 @@ interface CircleStyleData {
   circleStyle: {
     radius: number;
     spacingFactor: number;
+    rotationAngle: number;
+    deformationStrength: number;
     canvasWidthPercent: number;
     canvasHeightPercent: number;
     zoom: number;
@@ -315,6 +317,8 @@ export const importCircleStyleOnly = async (
   callbacks: {
     setRadius: (value: number) => void;
     setSpacingFactor: (value: number) => void;
+    setRotationAngle: (value: number) => void;
+    setDeformationStrength: (value: number) => void;
     setCanvasWidthPercent: (value: number) => void;
     setCanvasHeightPercent: (value: number) => void;
     setZoom: (value: number) => void;
@@ -343,6 +347,10 @@ export const importCircleStyleOnly = async (
     if (styleData.circleStyle) {
       callbacks.setRadius(styleData.circleStyle.radius);
       callbacks.setSpacingFactor(styleData.circleStyle.spacingFactor);
+      callbacks.setRotationAngle(styleData.circleStyle.rotationAngle);
+      callbacks.setDeformationStrength(
+        styleData.circleStyle.deformationStrength
+      );
       callbacks.setCanvasWidthPercent(styleData.circleStyle.canvasWidthPercent);
       callbacks.setCanvasHeightPercent(
         styleData.circleStyle.canvasHeightPercent

@@ -61,6 +61,8 @@ export interface StyleData {
   circleStyle?: {
     radius: number;
     spacingFactor: number;
+    rotationAngle: number;
+    deformationStrength: number;
     canvasWidthPercent: number;
     canvasHeightPercent: number;
     zoom: number;
@@ -1020,6 +1022,8 @@ export const exportCircleToZip = async (
     layers: number;
     radius: number;
     spacingFactor: number;
+    rotationAngle: number;
+    deformationStrength: number;
     dotStates: boolean[];
     canvasWidthPercent: number;
     canvasHeightPercent: number;
@@ -1054,6 +1058,8 @@ export const exportCircleToZip = async (
     circleStyle: {
       radius: state.radius,
       spacingFactor: state.spacingFactor,
+      rotationAngle: state.rotationAngle,
+      deformationStrength: state.deformationStrength,
       canvasWidthPercent: state.canvasWidthPercent,
       canvasHeightPercent: state.canvasHeightPercent,
       zoom: state.zoom,
@@ -1099,6 +1105,8 @@ export const importCircleFromFilesV2 = async (
     setLayers: (value: number) => void;
     setRadius: (value: number) => void;
     setSpacingFactor: (value: number) => void;
+    setRotationAngle: (value: number) => void;
+    setDeformationStrength: (value: number) => void;
     setCanvasWidthPercent: (value: number) => void;
     setCanvasHeightPercent: (value: number) => void;
     setZoom: (value: number) => void;
@@ -1154,6 +1162,10 @@ export const importCircleFromFilesV2 = async (
     if (styleData.circleStyle) {
       callbacks.setRadius(styleData.circleStyle.radius);
       callbacks.setSpacingFactor(styleData.circleStyle.spacingFactor);
+      callbacks.setRotationAngle(styleData.circleStyle.rotationAngle);
+      callbacks.setDeformationStrength(
+        styleData.circleStyle.deformationStrength
+      );
       callbacks.setCanvasWidthPercent(styleData.circleStyle.canvasWidthPercent);
       callbacks.setCanvasHeightPercent(
         styleData.circleStyle.canvasHeightPercent
@@ -1173,6 +1185,8 @@ export const smartImportCircleMultiple = async (
     setLayers: (value: number) => void;
     setRadius: (value: number) => void;
     setSpacingFactor: (value: number) => void;
+    setRotationAngle: (value: number) => void;
+    setDeformationStrength: (value: number) => void;
     setCanvasWidthPercent: (value: number) => void;
     setCanvasHeightPercent: (value: number) => void;
     setZoom: (value: number) => void;

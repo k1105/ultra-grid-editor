@@ -21,6 +21,8 @@ export default function CircleGridControls({
     setLayers,
     setRadius,
     setSpacingFactor,
+    setRotationAngle,
+    setDeformationStrength,
     setCanvasWidthPercent,
     setCanvasHeightPercent,
     setZoom,
@@ -54,6 +56,8 @@ export default function CircleGridControls({
         await importCircleStyleOnly(file, {
           setRadius,
           setSpacingFactor,
+          setRotationAngle,
+          setDeformationStrength,
           setCanvasWidthPercent,
           setCanvasHeightPercent,
           setZoom,
@@ -71,6 +75,8 @@ export default function CircleGridControls({
   }, [
     setRadius,
     setSpacingFactor,
+    setRotationAngle,
+    setDeformationStrength,
     setCanvasWidthPercent,
     setCanvasHeightPercent,
     setZoom,
@@ -215,6 +221,46 @@ export default function CircleGridControls({
             />
             <span className={styles.valueDisplay}>
               {state.spacingFactor.toFixed(2)}
+            </span>
+          </div>
+        </label>
+
+        <label>
+          回転 (度)
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min="0"
+              max="180"
+              step="1"
+              value={state.rotationAngle}
+              onChange={(e) => {
+                e.stopPropagation();
+                setRotationAngle(parseFloat(e.target.value));
+              }}
+              className={styles.slider}
+            />
+            <span className={styles.valueDisplay}>{state.rotationAngle}°</span>
+          </div>
+        </label>
+
+        <label>
+          変形
+          <div className={styles.sliderContainer}>
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="0.1"
+              value={state.deformationStrength}
+              onChange={(e) => {
+                e.stopPropagation();
+                setDeformationStrength(parseFloat(e.target.value));
+              }}
+              className={styles.slider}
+            />
+            <span className={styles.valueDisplay}>
+              {state.deformationStrength.toFixed(1)}
             </span>
           </div>
         </label>
