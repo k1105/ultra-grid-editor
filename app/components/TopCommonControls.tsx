@@ -5,7 +5,12 @@ import styles from "./EditorControls.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
-import {exportToZip, exportFibonacciToZip} from "../utils/exportImport";
+import {useCircleGrid} from "../contexts/CircleGridContext";
+import {
+  exportToZip,
+  exportFibonacciToZip,
+  exportCircleToZip,
+} from "../utils/exportImport";
 
 interface TopCommonControlsProps {
   className?: string;
@@ -20,7 +25,7 @@ interface TopCommonControlsProps {
   onDrawModeChange?: (mode: "draw" | "erase" | "move") => void;
   showDrawMode?: boolean;
   // Mode props
-  currentMode?: "pixel" | "fibonacci";
+  currentMode?: "pixel" | "fibonacci" | "circle";
 }
 
 export default function TopCommonControls({
@@ -41,6 +46,7 @@ export default function TopCommonControls({
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const pixelState = usePixelEditor().state;
   const fibonacciState = useFibonacciSpiral().state;
+  const circleState = useCircleGrid().state;
 
   // キーボードイベントの監視
   useEffect(() => {
@@ -77,7 +83,9 @@ export default function TopCommonControls({
       const fileName =
         currentMode === "pixel"
           ? pixelState.exportFileName || "pixel-grid"
-          : fibonacciState.exportFileName || "fibonacci-spiral";
+          : currentMode === "fibonacci"
+            ? fibonacciState.exportFileName || "fibonacci-spiral"
+            : circleState.exportFileName || "circle-grid";
 
       if (currentMode === "pixel") {
         await exportToZip(
@@ -87,8 +95,10 @@ export default function TopCommonControls({
           },
           fileName
         );
-      } else {
+      } else if (currentMode === "fibonacci") {
         await exportFibonacciToZip(fibonacciState, fileName);
+      } else {
+        await exportCircleToZip(circleState, fileName);
       }
     } catch (error) {
       alert(

@@ -1,0 +1,16 @@
+.circle-grid-canvas {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.circle-grid-canvas > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-grid-canvas canvas {
+  cursor: crosshair;
+  border-radius: 8px;
+}

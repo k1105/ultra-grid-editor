@@ -5,10 +5,11 @@ import Image from "next/image";
 import styles from "./CanvasViewControls.module.css";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
 import {useFibonacciSpiral} from "../contexts/FibonacciSpiralContext";
+import {useCircleGrid} from "../contexts/CircleGridContext";
 
 interface CanvasViewControlsProps {
   className?: string;
-  mode?: "pixel" | "fibonacci";
+  mode?: "pixel" | "fibonacci" | "circle";
 }
 
 export default function CanvasViewControls({
@@ -17,19 +18,33 @@ export default function CanvasViewControls({
 }: CanvasViewControlsProps) {
   const pixelState = usePixelEditor();
   const fibonacciState = useFibonacciSpiral();
+  const circleState = useCircleGrid();
 
   // モードに応じて状態を選択
-  const state = mode === "pixel" ? pixelState.state : fibonacciState.state;
+  const state =
+    mode === "pixel"
+      ? pixelState.state
+      : mode === "fibonacci"
+        ? fibonacciState.state
+        : circleState.state;
   const setCanvasWidthPercent =
     mode === "pixel"
       ? pixelState.setCanvasWidthPercent
-      : fibonacciState.setCanvasWidthPercent;
+      : mode === "fibonacci"
+        ? fibonacciState.setCanvasWidthPercent
+        : circleState.setCanvasWidthPercent;
   const setZoom =
-    mode === "pixel" ? pixelState.setZoom : fibonacciState.setZoom;
+    mode === "pixel"
+      ? pixelState.setZoom
+      : mode === "fibonacci"
+        ? fibonacciState.setZoom
+        : circleState.setZoom;
   const setCanvasHeightPercent =
     mode === "pixel"
       ? pixelState.setCanvasHeightPercent
-      : fibonacciState.setCanvasHeightPercent;
+      : mode === "fibonacci"
+        ? fibonacciState.setCanvasHeightPercent
+        : circleState.setCanvasHeightPercent;
   const [isDistortionExpanded, setIsDistortionExpanded] = useState(false);
 
   // 幅変更ハンドラー - widthのみを変更（heightは固定）

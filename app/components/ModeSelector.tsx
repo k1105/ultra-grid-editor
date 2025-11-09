@@ -3,7 +3,7 @@
 import styles from "./ModeSelector.module.css";
 import {Icon} from "@iconify/react/dist/iconify.js";
 
-type Mode = "pixel" | "fibonacci";
+type Mode = "pixel" | "fibonacci" | "circle";
 
 interface ModeSelectorProps {
   currentMode: Mode;
@@ -35,6 +35,15 @@ export default function ModeSelector({
       >
         <Icon icon="mdi:circle-multiple" />
         <span>Fibonacci Spiral</span>
+      </button>
+      <button
+        onClick={() => onModeChange("circle")}
+        className={`${styles.modeButton} ${
+          currentMode === "circle" ? styles.active : ""
+        }`}
+      >
+        <Icon icon="mdi:circle-outline" />
+        <span>Circle Grid</span>
       </button>
     </div>
   );

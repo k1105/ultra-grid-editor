@@ -6,6 +6,7 @@ import CanvasViewControls from "./CanvasViewControls";
 import styles from "./CanvasContainer.module.css";
 import {usePixelEditor} from "../contexts/PixelEditorContext";
 import FibonacciSpiralCanvas from "./FibonacciSpiralCanvas";
+import CircleGridCanvas from "./CircleGridCanvas";
 import {
   createPixelCanvasSketch,
   type PixelCanvasState,
@@ -19,7 +20,7 @@ interface P5Instance {
 
 interface PixelCanvasProps {
   className?: string;
-  mode?: "pixel" | "fibonacci";
+  mode?: "pixel" | "fibonacci" | "circle";
 }
 
 export default function PixelCanvas({
@@ -189,6 +190,11 @@ export default function PixelCanvas({
   // フィボナッチモードの場合はFibonacciSpiralCanvasを表示
   if (mode === "fibonacci") {
     return <FibonacciSpiralCanvas className={className} />;
+  }
+
+  // Circleモードの場合はCircleGridCanvasを表示
+  if (mode === "circle") {
+    return <CircleGridCanvas className={className} />;
   }
 
   return (

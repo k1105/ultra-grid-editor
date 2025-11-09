@@ -5,7 +5,7 @@ import JSZip from "jszip";
 // glyph.json の型定義（セル情報とキャンバスサイズ）
 export interface GlyphData {
   version: string;
-  mode: "pixel" | "fibonacci";
+  mode: "pixel" | "fibonacci" | "circle";
   canvasSize: {
     width: number;
     height: number;
@@ -20,13 +20,18 @@ export interface GlyphData {
     numberOfCircles: number;
     dotStates: boolean[];
   };
+  // Circleモード用
+  circleData?: {
+    layers: number;
+    dotStates: boolean[];
+  };
   exportDate: string;
 }
 
 // style.json の型定義（グリッド設定とその他）
 export interface StyleData {
   version: string;
-  mode: "pixel" | "fibonacci";
+  mode: "pixel" | "fibonacci" | "circle";
   // ピクセルモード用
   pixelStyle?: {
     pixW: number;
@@ -48,6 +53,14 @@ export interface StyleData {
     rotationAngle: number;
     deformationStrength: number;
     dotRadius: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+  };
+  // Circleモード用
+  circleStyle?: {
+    radius: number;
+    spacingFactor: number;
     canvasWidthPercent: number;
     canvasHeightPercent: number;
     zoom: number;
@@ -930,5 +943,262 @@ export const smartImportFibonacciMultiple = async (
 
   throw new Error(
     "無効なファイル選択です。単一の古い形式ファイル、または新しい形式のglyph.jsonとstyle.jsonの両方を選択してください。"
+  );
+};
+
+// CircleグリッドからSVGパスを生成する関数
+export const generateCircleSVGPath = (
+  dotStates: boolean[],
+  layers: number,
+  radius: number,
+  spacingFactor: number,
+  canvasSize: number
+): string => {
+  const paths: string[] = [];
+  const centerX = canvasSize / 2;
+  const centerY = canvasSize / 2;
+  let dotIndex = 0;
+
+  for (let i = 0; i < layers; i++) {
+    const layerRadius = (i / (layers - 1)) * (canvasSize / 2.2);
+    const circleSize = radius;
+    const circumference = 2 * Math.PI * layerRadius;
+    const circlesPerLayer = Math.max(
+      6,
+      Math.floor(circumference / (circleSize * spacingFactor))
+    );
+
+    for (let j = 0; j < circlesPerLayer; j++) {
+      if (dotStates[dotIndex]) {
+        const angle =
+          (2 * Math.PI * j) / circlesPerLayer +
+          ((i % 2) * Math.PI) / circlesPerLayer;
+        const x = centerX + Math.cos(angle) * layerRadius;
+        const y = centerY + Math.sin(angle) * layerRadius;
+
+        // 円のパスを生成
+        const r = circleSize / 2;
+        const path = `M ${x - r} ${y} A ${r} ${r} 0 1 1 ${x + r} ${y} A ${r} ${r} 0 1 1 ${
+          x - r
+        } ${y} Z`;
+        paths.push(path);
+      }
+      dotIndex++;
+    }
+  }
+
+  return paths.join(" ");
+};
+
+// Circleグリッド用のSVGファイルを生成する関数
+export const generateCircleSVG = (
+  dotStates: boolean[],
+  layers: number,
+  radius: number,
+  spacingFactor: number
+): string => {
+  // SVGのサイズを計算
+  const svgSize = 800;
+
+  const pathData = generateCircleSVGPath(
+    dotStates,
+    layers,
+    radius,
+    spacingFactor,
+    svgSize
+  );
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" xmlns="http://www.w3.org/2000/svg">
+  <path d="${pathData}" fill="black" stroke="none"/>
+</svg>`;
+};
+
+// Circleモード用エクスポート処理
+export const exportCircleToZip = async (
+  state: {
+    layers: number;
+    radius: number;
+    spacingFactor: number;
+    dotStates: boolean[];
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+  },
+  exportFileName: string
+): Promise<void> => {
+  const zip = new JSZip();
+
+  // キャンバスサイズを決定
+  const canvasSize = 800;
+
+  // glyph.json の準備
+  const glyphData: GlyphData = {
+    version: "2.0.0",
+    mode: "circle",
+    canvasSize: {
+      width: canvasSize,
+      height: canvasSize,
+    },
+    circleData: {
+      layers: state.layers,
+      dotStates: state.dotStates,
+    },
+    exportDate: new Date().toISOString(),
+  };
+
+  // style.json の準備
+  const styleData: StyleData = {
+    version: "2.0.0",
+    mode: "circle",
+    circleStyle: {
+      radius: state.radius,
+      spacingFactor: state.spacingFactor,
+      canvasWidthPercent: state.canvasWidthPercent,
+      canvasHeightPercent: state.canvasHeightPercent,
+      zoom: state.zoom,
+    },
+    exportDate: new Date().toISOString(),
+  };
+
+  // SVGデータの準備
+  const svgContent = generateCircleSVG(
+    state.dotStates,
+    state.layers,
+    state.radius,
+    state.spacingFactor
+  );
+
+  // ZIPファイルにファイルを追加
+  zip.file(`${exportFileName}-glyph.json`, JSON.stringify(glyphData, null, 2));
+  zip.file(`${exportFileName}-style.json`, JSON.stringify(styleData, null, 2));
+  zip.file(`${exportFileName}.svg`, svgContent);
+
+  // ZIPファイルを生成してダウンロード
+  try {
+    const zipBlob = await zip.generateAsync({type: "blob"});
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${exportFileName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Failed to generate ZIP file:", error);
+    throw new Error("エクスポートに失敗しました");
+  }
+};
+
+// Circleモード用のインポート処理（glyph.json + style.json）
+export const importCircleFromFilesV2 = async (
+  glyphFile: File,
+  styleFile: File,
+  callbacks: {
+    setLayers: (value: number) => void;
+    setRadius: (value: number) => void;
+    setSpacingFactor: (value: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setDotStates: (states: boolean[]) => void;
+  }
+): Promise<void> => {
+  try {
+    // glyph.json を読み込み
+    const glyphData = await new Promise<GlyphData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as GlyphData;
+          if (!data.version || data.mode !== "circle") {
+            throw new Error("Invalid glyph file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なglyphファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("glyphファイルの読み込みに失敗しました"));
+      reader.readAsText(glyphFile);
+    });
+
+    // style.json を読み込み
+    const styleData = await new Promise<StyleData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string) as StyleData;
+          if (!data.version || data.mode !== "circle") {
+            throw new Error("Invalid style file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なstyleファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("styleファイルの読み込みに失敗しました"));
+      reader.readAsText(styleFile);
+    });
+
+    // グリッド情報を更新
+    if (glyphData.circleData) {
+      callbacks.setLayers(glyphData.circleData.layers);
+      callbacks.setDotStates(glyphData.circleData.dotStates);
+    }
+
+    // スタイル情報を更新
+    if (styleData.circleStyle) {
+      callbacks.setRadius(styleData.circleStyle.radius);
+      callbacks.setSpacingFactor(styleData.circleStyle.spacingFactor);
+      callbacks.setCanvasWidthPercent(styleData.circleStyle.canvasWidthPercent);
+      callbacks.setCanvasHeightPercent(
+        styleData.circleStyle.canvasHeightPercent
+      );
+      callbacks.setZoom(styleData.circleStyle.zoom);
+    }
+  } catch (error) {
+    console.error("Failed to import files:", error);
+    throw error;
+  }
+};
+
+// Circleモード用の複数ファイルでのスマートなimport処理
+export const smartImportCircleMultiple = async (
+  files: File[],
+  callbacks: {
+    setLayers: (value: number) => void;
+    setRadius: (value: number) => void;
+    setSpacingFactor: (value: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+    setDotStates: (states: boolean[]) => void;
+  }
+): Promise<void> => {
+  if (files.length === 2) {
+    // ファイル名からglyphとstyleを特定
+    let glyphFile: File | null = null;
+    let styleFile: File | null = null;
+
+    for (const file of files) {
+      const fileName = file.name.toLowerCase();
+      if (fileName.includes("-glyph.json")) {
+        glyphFile = file;
+      } else if (fileName.includes("-style.json")) {
+        styleFile = file;
+      }
+    }
+
+    if (glyphFile && styleFile) {
+      return importCircleFromFilesV2(glyphFile, styleFile, callbacks);
+    }
+  }
+
+  throw new Error(
+    "無効なファイル選択です。glyph.jsonとstyle.jsonの両方を選択してください。"
   );
 };

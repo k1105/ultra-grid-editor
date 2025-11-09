@@ -49,6 +49,27 @@ interface FibonacciGlyphData {
   };
 }
 
+interface CircleStyleData {
+  version: string;
+  mode: "circle";
+  circleStyle: {
+    radius: number;
+    spacingFactor: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+  };
+}
+
+interface CircleGlyphData {
+  version: string;
+  mode: "circle";
+  circleData: {
+    layers: number;
+    dotStates: boolean[];
+  };
+}
+
 // styleのみをインポートする関数（ピクセルモード用）
 export const importPixelStyleOnly = async (
   file: File,
@@ -281,6 +302,90 @@ export const importFibonacciGlyphOnly = async (
     if (glyphData.fibonacciData) {
       callbacks.setNumberOfCircles(glyphData.fibonacciData.numberOfCircles);
       callbacks.setDotStates(glyphData.fibonacciData.dotStates);
+    }
+  } catch (error) {
+    console.error("Failed to import glyph file:", error);
+    throw error;
+  }
+};
+
+// styleのみをインポートする関数（Circleモード用）
+export const importCircleStyleOnly = async (
+  file: File,
+  callbacks: {
+    setRadius: (value: number) => void;
+    setSpacingFactor: (value: number) => void;
+    setCanvasWidthPercent: (value: number) => void;
+    setCanvasHeightPercent: (value: number) => void;
+    setZoom: (value: number) => void;
+  }
+): Promise<void> => {
+  try {
+    const styleData = await new Promise<CircleStyleData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          if (!data.version || data.mode !== "circle") {
+            throw new Error("Invalid style file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なstyleファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("styleファイルの読み込みに失敗しました"));
+      reader.readAsText(file);
+    });
+
+    // スタイル情報のみを更新
+    if (styleData.circleStyle) {
+      callbacks.setRadius(styleData.circleStyle.radius);
+      callbacks.setSpacingFactor(styleData.circleStyle.spacingFactor);
+      callbacks.setCanvasWidthPercent(styleData.circleStyle.canvasWidthPercent);
+      callbacks.setCanvasHeightPercent(
+        styleData.circleStyle.canvasHeightPercent
+      );
+      callbacks.setZoom(styleData.circleStyle.zoom);
+    }
+  } catch (error) {
+    console.error("Failed to import style file:", error);
+    throw error;
+  }
+};
+
+// glyphのみをインポートする関数（Circleモード用）
+export const importCircleGlyphOnly = async (
+  file: File,
+  callbacks: {
+    setLayers: (value: number) => void;
+    setDotStates: (states: boolean[]) => void;
+  }
+): Promise<void> => {
+  try {
+    const glyphData = await new Promise<CircleGlyphData>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          if (!data.version || data.mode !== "circle") {
+            throw new Error("Invalid glyph file format");
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("無効なglyphファイル形式です"));
+        }
+      };
+      reader.onerror = () =>
+        reject(new Error("glyphファイルの読み込みに失敗しました"));
+      reader.readAsText(file);
+    });
+
+    // glyph情報のみを更新
+    if (glyphData.circleData) {
+      callbacks.setLayers(glyphData.circleData.layers);
+      callbacks.setDotStates(glyphData.circleData.dotStates);
     }
   } catch (error) {
     console.error("Failed to import glyph file:", error);
