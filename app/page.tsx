@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import Link from "next/link";
 import styles from "./page.module.css";
 import PixelCanvas from "./components/CanvasContainer";
 import EditorControls from "./components/EditorControls";
@@ -20,11 +21,16 @@ export default function Home() {
       <PixelEditorProvider>
         <FibonacciSpiralProvider>
           <CircleGridProvider>
-            <ModeSelector
-              currentMode={currentMode}
-              onModeChange={setCurrentMode}
-              className={styles.modeSelector}
-            />
+            <div className={styles.header}>
+              <ModeSelector
+                currentMode={currentMode}
+                onModeChange={setCurrentMode}
+                className={styles.modeSelector}
+              />
+              <Link href="/text-editor" className={styles.textEditorLink}>
+                テキストエディターを開く →
+              </Link>
+            </div>
             <main className={styles.main}>
               <EditorControls mode={currentMode} />
               <PixelCanvas className={styles.canvas} mode={currentMode} />

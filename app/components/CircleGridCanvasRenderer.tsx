@@ -5,18 +5,19 @@ import type p5 from "p5";
 // グローバル関数の型定義
 declare global {
   interface Window {
-    toggleCircleDot?: (index: number) => void;
+    toggleCircleDot?: (key: string) => void;
     circleGridState?: {
       layers: number;
       radius: number;
       spacingFactor: number;
       rotationAngle: number;
       deformationStrength: number;
-      dotStates: boolean[];
+      dotStates: Record<string, boolean>;
       drawMode: "draw" | "erase" | "move";
       zoom: number;
       canvasWidthPercent: number;
       canvasHeightPercent: number;
+      gridType: "honeycomb" | "rectangular";
     };
     updateCircleGridCanvasState?: (
       newState: CircleGridCanvasState,
@@ -31,15 +32,16 @@ export interface CircleGridCanvasState {
   spacingFactor: number;
   rotationAngle: number;
   deformationStrength: number;
-  dotStates: boolean[];
+  dotStates: Record<string, boolean>;
   drawMode: "draw" | "erase" | "move";
   zoom: number;
   canvasWidthPercent: number;
   canvasHeightPercent: number;
+  gridType: "honeycomb" | "rectangular";
 }
 
 export interface CircleGridCanvasCallbacks {
-  toggleDot: (index: number) => void;
+  toggleDot: (key: string) => void;
 }
 
 export function createCircleGridCanvasSketch(
@@ -51,10 +53,10 @@ export function createCircleGridCanvasSketch(
       x: number;
       y: number;
       radius: number;
-      index: number;
+      key: string;
     }> = [];
     let isDragging = false;
-    let lastToggledIndex = -1;
+    let lastToggledKey = "";
     let showStroke = true; // ストローク表示フラグ
 
     // 状態の参照を保持（クロージャーを避けるため）
@@ -147,79 +149,156 @@ export function createCircleGridCanvasSketch(
       // ドット位置をリセット
       dotPositions = [];
 
-      // グリッドインデックスを追跡
-      let dotIndex = 0;
+      if (currentState.gridType === "honeycomb") {
+        // 既存のハニカムグリッド
+        // 各レイヤーを描画
+        for (let i = 0; i < currentState.layers; i++) {
+          const radius = p.map(i, 0, currentState.layers - 1, 0, width / 2.8);
+          const circleSize = currentState.radius;
+          const circumference = p.TWO_PI * radius;
+          const circlesPerLayer = Math.max(
+            6,
+            Math.floor(circumference / (circleSize * currentState.spacingFactor))
+          );
 
-      // 各レイヤーを描画
-      for (let i = 0; i < currentState.layers; i++) {
-        const radius = p.map(i, 0, currentState.layers - 1, 0, width / 2.8);
+          for (let j = 0; j < circlesPerLayer; j++) {
+            const angle =
+              (p.TWO_PI * j) / circlesPerLayer +
+              ((i % 2) * Math.PI) / circlesPerLayer;
+
+            // 基本位置
+            const x_rel = Math.cos(angle) * radius;
+            const y_rel = Math.sin(angle) * radius;
+
+            // 回転を適用（中心を原点として）
+            const cos_a = Math.cos(-rotationAngleRad);
+            const sin_a = Math.sin(-rotationAngleRad);
+            const x_rot = x_rel * cos_a - y_rel * sin_a;
+            const y_rot = x_rel * sin_a + y_rel * cos_a;
+
+            // 変形を適用（X軸方向に伸縮）
+            const x_stretched = x_rot * currentState.deformationStrength;
+            const y_stretched = y_rot;
+
+            // 逆回転を適用
+            const cos_b = Math.cos(rotationAngleRad);
+            const sin_b = Math.sin(rotationAngleRad);
+            const x_final_rel = x_stretched * cos_b - y_stretched * sin_b;
+            const y_final_rel = x_stretched * sin_b + y_stretched * cos_b;
+
+            // 最終位置（中心からの相対位置を絶対位置に変換）
+            let x = centerX + x_final_rel;
+            let y = centerY + y_final_rel;
+
+            // キャンバスサイズの変更を適用
+            x = centerX + (x - centerX) * (effectiveWidth / 100);
+            y = centerY + (y - centerY) * (effectiveHeight / 100);
+
+            // ドットの半径
+            const dotRadius = circleSize / 2;
+
+            // 座標ベースのキーを生成
+            const key = `${i}:${j}`;
+
+            // 位置情報を保存
+            dotPositions.push({x, y, radius: dotRadius, key});
+
+            // ドットを描画
+            p.push();
+            p.strokeWeight(2);
+            if (showStroke) {
+              p.stroke(200);
+            } else {
+              p.noStroke();
+            }
+
+            // 状態に応じて色を決定
+            const isFilled = currentState.dotStates[key];
+            if (isFilled) {
+              p.fill(0);
+            } else {
+              p.noFill();
+            }
+
+            p.circle(x, y, circleSize);
+            p.pop();
+          }
+        }
+      } else if (currentState.gridType === "rectangular") {
+        // 矩形グリッド(円形クロップ)
         const circleSize = currentState.radius;
-        const circumference = p.TWO_PI * radius;
-        const circlesPerLayer = Math.max(
-          6,
-          Math.floor(circumference / (circleSize * currentState.spacingFactor))
-        );
+        const spacing = circleSize * currentState.spacingFactor;
 
-        for (let j = 0; j < circlesPerLayer; j++) {
-          const angle =
-            (p.TWO_PI * j) / circlesPerLayer +
-            ((i % 2) * Math.PI) / circlesPerLayer;
+        // グリッドのサイズを計算（円の半径に基づく）
+        const maxRadius = width / 2.8;
+        const gridSize = Math.ceil(maxRadius * 2 / spacing) + 2;
 
-          // 基本位置
-          const x_rel = Math.cos(angle) * radius;
-          const y_rel = Math.sin(angle) * radius;
+        // 中心からのグリッド配置
+        for (let row = -gridSize; row <= gridSize; row++) {
+          for (let col = -gridSize; col <= gridSize; col++) {
+            // 基本位置（矩形グリッド）
+            const x_rel = col * spacing;
+            const y_rel = row * spacing;
 
-          // 回転を適用（中心を原点として）
-          const cos_a = Math.cos(-rotationAngleRad);
-          const sin_a = Math.sin(-rotationAngleRad);
-          const x_rot = x_rel * cos_a - y_rel * sin_a;
-          const y_rot = x_rel * sin_a + y_rel * cos_a;
+            // 円形クロップの判定（回転・変形前の位置で判定）
+            const distFromCenter = Math.sqrt(x_rel * x_rel + y_rel * y_rel);
+            if (distFromCenter > maxRadius) {
+              continue; // 円の外側はスキップ
+            }
 
-          // 変形を適用（X軸方向に伸縮）
-          const x_stretched = x_rot * currentState.deformationStrength;
-          const y_stretched = y_rot;
+            // 回転を適用（中心を原点として）
+            const cos_a = Math.cos(-rotationAngleRad);
+            const sin_a = Math.sin(-rotationAngleRad);
+            const x_rot = x_rel * cos_a - y_rel * sin_a;
+            const y_rot = x_rel * sin_a + y_rel * cos_a;
 
-          // 逆回転を適用
-          const cos_b = Math.cos(rotationAngleRad);
-          const sin_b = Math.sin(rotationAngleRad);
-          const x_final_rel = x_stretched * cos_b - y_stretched * sin_b;
-          const y_final_rel = x_stretched * sin_b + y_stretched * cos_b;
+            // 変形を適用（X軸方向に伸縮）
+            const x_stretched = x_rot * currentState.deformationStrength;
+            const y_stretched = y_rot;
 
-          // 最終位置（中心からの相対位置を絶対位置に変換）
-          let x = centerX + x_final_rel;
-          let y = centerY + y_final_rel;
+            // 逆回転を適用
+            const cos_b = Math.cos(rotationAngleRad);
+            const sin_b = Math.sin(rotationAngleRad);
+            const x_final_rel = x_stretched * cos_b - y_stretched * sin_b;
+            const y_final_rel = x_stretched * sin_b + y_stretched * cos_b;
 
-          // キャンバスサイズの変更を適用
-          x = centerX + (x - centerX) * (effectiveWidth / 100);
-          y = centerY + (y - centerY) * (effectiveHeight / 100);
+            // 最終位置（中心からの相対位置を絶対位置に変換）
+            let x = centerX + x_final_rel;
+            let y = centerY + y_final_rel;
 
-          // ドットの半径
-          const dotRadius = circleSize / 2;
+            // キャンバスサイズの変更を適用
+            x = centerX + (x - centerX) * (effectiveWidth / 100);
+            y = centerY + (y - centerY) * (effectiveHeight / 100);
 
-          // 位置情報を保存
-          dotPositions.push({x, y, radius: dotRadius, index: dotIndex});
+            // ドットの半径
+            const dotRadius = circleSize / 2;
 
-          // ドットを描画
-          p.push();
-          p.strokeWeight(2);
-          if (showStroke) {
-            p.stroke(200);
-          } else {
-            p.noStroke();
+            // 座標ベースのキーを生成
+            const key = `${row}:${col}`;
+
+            // 位置情報を保存
+            dotPositions.push({x, y, radius: dotRadius, key});
+
+            // ドットを描画
+            p.push();
+            p.strokeWeight(2);
+            if (showStroke) {
+              p.stroke(200);
+            } else {
+              p.noStroke();
+            }
+
+            // 状態に応じて色を決定
+            const isFilled = currentState.dotStates[key];
+            if (isFilled) {
+              p.fill(0);
+            } else {
+              p.noFill();
+            }
+
+            p.circle(x, y, circleSize);
+            p.pop();
           }
-
-          // 状態に応じて色を決定
-          const isFilled = currentState.dotStates[dotIndex];
-          if (isFilled) {
-            p.fill(0);
-          } else {
-            p.noFill();
-          }
-
-          p.circle(x, y, circleSize);
-          p.pop();
-
-          dotIndex++;
         }
       }
     };
@@ -229,7 +308,7 @@ export function createCircleGridCanvasSketch(
       const dot = getDotAtPosition(p.mouseX, p.mouseY);
       if (dot) {
         isDragging = true;
-        if (dot.index !== lastToggledIndex) {
+        if (dot.key !== lastToggledKey) {
           // 描画モードに応じた処理
           const currentState = getCurrentState();
 
@@ -242,17 +321,17 @@ export function createCircleGridCanvasSketch(
 
           if (effectiveMode === "draw") {
             // drawモードの場合は白いドットのみを黒にする
-            if (!currentState.dotStates[dot.index]) {
-              window.toggleCircleDot?.(dot.index);
+            if (!currentState.dotStates[dot.key]) {
+              window.toggleCircleDot?.(dot.key);
             }
           } else if (effectiveMode === "erase") {
             // 消去モードの場合は黒いドットのみを白に戻す
-            if (currentState.dotStates[dot.index]) {
-              window.toggleCircleDot?.(dot.index);
+            if (currentState.dotStates[dot.key]) {
+              window.toggleCircleDot?.(dot.key);
             }
           }
           // moveモードの場合は何もしない
-          lastToggledIndex = dot.index;
+          lastToggledKey = dot.key;
         }
       }
     };
@@ -261,7 +340,7 @@ export function createCircleGridCanvasSketch(
     p.mouseDragged = (event: MouseEvent) => {
       if (isDragging) {
         const dot = getDotAtPosition(p.mouseX, p.mouseY);
-        if (dot && dot.index !== lastToggledIndex) {
+        if (dot && dot.key !== lastToggledKey) {
           // 描画モードに応じた処理
           const currentState = getCurrentState();
 
@@ -274,17 +353,17 @@ export function createCircleGridCanvasSketch(
 
           if (effectiveMode === "draw") {
             // drawモードの場合は白いドットのみを黒にする
-            if (!currentState.dotStates[dot.index]) {
-              window.toggleCircleDot?.(dot.index);
+            if (!currentState.dotStates[dot.key]) {
+              window.toggleCircleDot?.(dot.key);
             }
           } else if (effectiveMode === "erase") {
             // 消去モードの場合は黒いドットのみを白に戻す
-            if (currentState.dotStates[dot.index]) {
-              window.toggleCircleDot?.(dot.index);
+            if (currentState.dotStates[dot.key]) {
+              window.toggleCircleDot?.(dot.key);
             }
           }
           // moveモードの場合は何もしない
-          lastToggledIndex = dot.index;
+          lastToggledKey = dot.key;
         }
       }
     };
@@ -292,7 +371,7 @@ export function createCircleGridCanvasSketch(
     // マウスリリースでドラッグ終了
     p.mouseReleased = () => {
       isDragging = false;
-      lastToggledIndex = -1;
+      lastToggledKey = "";
     };
 
     // キーボードイベントハンドラー

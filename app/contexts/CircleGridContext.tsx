@@ -15,12 +15,13 @@ interface CircleGridState {
   spacingFactor: number;
   rotationAngle: number;
   deformationStrength: number;
-  dotStates: boolean[];
+  dotStates: Record<string, boolean>; // キーは "layer:position" または "row:col"
   drawMode: "draw" | "erase" | "move";
   zoom: number;
   canvasWidthPercent: number;
   canvasHeightPercent: number;
   exportFileName: string;
+  gridType: "honeycomb" | "rectangular";
 }
 
 // コンテキストの型定義
@@ -35,9 +36,10 @@ interface CircleGridContextType {
   setZoom: (value: number) => void;
   setCanvasWidthPercent: (value: number) => void;
   setCanvasHeightPercent: (value: number) => void;
-  setDotStates: (states: boolean[]) => void;
+  setDotStates: (states: Record<string, boolean>) => void;
   setExportFileName: (name: string) => void;
-  toggleDot: (index: number) => void;
+  setGridType: (type: "honeycomb" | "rectangular") => void;
+  toggleDot: (key: string) => void;
   resetCanvas: () => void;
 }
 
@@ -53,12 +55,13 @@ const initialState: CircleGridState = {
   spacingFactor: 1.4,
   rotationAngle: 0,
   deformationStrength: 1.0,
-  dotStates: Array.from({length: 5000}, () => false), // 最大5000個のドット
+  dotStates: {}, // 座標ベースのオブジェクト
   drawMode: "draw",
   zoom: 1,
   canvasWidthPercent: 100,
   canvasHeightPercent: 100,
   exportFileName: "あ",
+  gridType: "honeycomb",
 };
 
 // Providerコンポーネント
@@ -70,17 +73,11 @@ export function CircleGridProvider({children}: CircleGridProviderProps) {
   const [state, setState] = useState<CircleGridState>(initialState);
 
   const setLayers = useCallback((value: number) => {
-    setState((prev) => {
-      // レイヤー数に応じた最大ドット数を概算
-      const maxDots = Math.max(5000, value * 100);
-      return {
-        ...prev,
-        layers: value,
-        dotStates: Array.from({length: maxDots}, (_, i) =>
-          i < prev.dotStates.length ? prev.dotStates[i] : false
-        ),
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      layers: value,
+      // dotStatesはそのまま保持（座標ベースなので自動的に適応）
+    }));
   }, []);
 
   const setRadius = useCallback((value: number) => {
@@ -139,7 +136,7 @@ export function CircleGridProvider({children}: CircleGridProviderProps) {
     }));
   }, []);
 
-  const setDotStates = useCallback((states: boolean[]) => {
+  const setDotStates = useCallback((states: Record<string, boolean>) => {
     setState((prev) => ({
       ...prev,
       dotStates: states,
@@ -153,19 +150,27 @@ export function CircleGridProvider({children}: CircleGridProviderProps) {
     }));
   }, []);
 
-  const toggleDot = useCallback((index: number) => {
+  const setGridType = useCallback((type: "honeycomb" | "rectangular") => {
     setState((prev) => ({
       ...prev,
-      dotStates: prev.dotStates.map((state, i) =>
-        i === index ? !state : state
-      ),
+      gridType: type,
+    }));
+  }, []);
+
+  const toggleDot = useCallback((key: string) => {
+    setState((prev) => ({
+      ...prev,
+      dotStates: {
+        ...prev.dotStates,
+        [key]: !prev.dotStates[key],
+      },
     }));
   }, []);
 
   const resetCanvas = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      dotStates: Array.from({length: prev.dotStates.length}, () => false),
+      dotStates: {},
     }));
   }, []);
 
@@ -182,6 +187,7 @@ export function CircleGridProvider({children}: CircleGridProviderProps) {
     setCanvasHeightPercent,
     setDotStates,
     setExportFileName,
+    setGridType,
     toggleDot,
     resetCanvas,
   };

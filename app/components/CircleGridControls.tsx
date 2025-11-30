@@ -28,6 +28,7 @@ export default function CircleGridControls({
     setZoom,
     setDotStates,
     setExportFileName,
+    setGridType,
   } = useCircleGrid();
 
   // イベント伝播を停止するハンドラー
@@ -61,6 +62,7 @@ export default function CircleGridControls({
           setCanvasWidthPercent,
           setCanvasHeightPercent,
           setZoom,
+          setGridType,
         });
         alert("スタイルファイルの読み込みが完了しました");
       } catch (error) {
@@ -80,6 +82,7 @@ export default function CircleGridControls({
     setCanvasWidthPercent,
     setCanvasHeightPercent,
     setZoom,
+    setGridType,
   ]);
 
   // glyphのみのインポート処理
@@ -165,6 +168,23 @@ export default function CircleGridControls({
             <Icon icon="mdi:import" />
           </button>
         </div>
+
+        <label>
+          グリッドタイプ
+          <div className={styles.sliderContainer}>
+            <select
+              value={state.gridType}
+              onChange={(e) => {
+                e.stopPropagation();
+                setGridType(e.target.value as "honeycomb" | "rectangular");
+              }}
+              className={styles.slider}
+            >
+              <option value="honeycomb">ハニカム</option>
+              <option value="rectangular">矩形グリッド</option>
+            </select>
+          </div>
+        </label>
 
         <label>
           レイヤー数

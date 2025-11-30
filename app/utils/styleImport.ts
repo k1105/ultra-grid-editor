@@ -60,6 +60,7 @@ interface CircleStyleData {
     canvasWidthPercent: number;
     canvasHeightPercent: number;
     zoom: number;
+    gridType?: "honeycomb" | "rectangular";
   };
 }
 
@@ -68,7 +69,7 @@ interface CircleGlyphData {
   mode: "circle";
   circleData: {
     layers: number;
-    dotStates: boolean[];
+    dotStates: Record<string, boolean>;
   };
 }
 
@@ -322,6 +323,7 @@ export const importCircleStyleOnly = async (
     setCanvasWidthPercent: (value: number) => void;
     setCanvasHeightPercent: (value: number) => void;
     setZoom: (value: number) => void;
+    setGridType?: (type: "honeycomb" | "rectangular") => void;
   }
 ): Promise<void> => {
   try {
@@ -356,6 +358,12 @@ export const importCircleStyleOnly = async (
         styleData.circleStyle.canvasHeightPercent
       );
       callbacks.setZoom(styleData.circleStyle.zoom);
+      if (
+        callbacks.setGridType &&
+        styleData.circleStyle.gridType
+      ) {
+        callbacks.setGridType(styleData.circleStyle.gridType);
+      }
     }
   } catch (error) {
     console.error("Failed to import style file:", error);
@@ -368,7 +376,7 @@ export const importCircleGlyphOnly = async (
   file: File,
   callbacks: {
     setLayers: (value: number) => void;
-    setDotStates: (states: boolean[]) => void;
+    setDotStates: (states: Record<string, boolean>) => void;
   }
 ): Promise<void> => {
   try {

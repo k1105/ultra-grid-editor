@@ -9,10 +9,34 @@
   padding: 20px;
 }
 
-.modeSelector {
+.header {
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.modeSelector {
+  flex: 1;
   max-width: 600px;
-  margin: 0 auto 20px auto;
+}
+
+.textEditorLink {
+  padding: 10px 20px;
+  background: #007aff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.textEditorLink:hover {
+  background: #0056b3;
 }
 
 .main {

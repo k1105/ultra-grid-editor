@@ -55,6 +55,7 @@ export default function CircleGridCanvas({className}: CircleGridCanvasProps) {
         zoom: state.zoom,
         canvasWidthPercent: state.canvasWidthPercent,
         canvasHeightPercent: state.canvasHeightPercent,
+        gridType: state.gridType,
       };
 
       const circleGridCanvasCallbacks: CircleGridCanvasCallbacks = {
@@ -94,6 +95,7 @@ export default function CircleGridCanvas({className}: CircleGridCanvasProps) {
         zoom: state.zoom,
         canvasWidthPercent: state.canvasWidthPercent,
         canvasHeightPercent: state.canvasHeightPercent,
+        gridType: state.gridType,
       };
 
       const circleGridCanvasCallbacks: CircleGridCanvasCallbacks = {

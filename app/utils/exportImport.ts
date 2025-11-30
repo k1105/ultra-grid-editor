@@ -23,7 +23,18 @@ export interface GlyphData {
   // Circleモード用
   circleData?: {
     layers: number;
-    dotStates: boolean[];
+    dotStates: Record<string, boolean>;
+  };
+  // Circleモードのスタイル情報（glyph.jsonに含める）
+  circleStyle?: {
+    radius: number;
+    spacingFactor: number;
+    rotationAngle: number;
+    deformationStrength: number;
+    canvasWidthPercent: number;
+    canvasHeightPercent: number;
+    zoom: number;
+    gridType: "honeycomb" | "rectangular";
   };
   exportDate: string;
 }
@@ -66,6 +77,7 @@ export interface StyleData {
     canvasWidthPercent: number;
     canvasHeightPercent: number;
     zoom: number;
+    gridType: "honeycomb" | "rectangular";
   };
   exportDate: string;
 }
@@ -950,42 +962,120 @@ export const smartImportFibonacciMultiple = async (
 
 // CircleグリッドからSVGパスを生成する関数
 export const generateCircleSVGPath = (
-  dotStates: boolean[],
+  dotStates: Record<string, boolean>,
   layers: number,
   radius: number,
   spacingFactor: number,
-  canvasSize: number
+  canvasSize: number,
+  gridType: "honeycomb" | "rectangular" = "honeycomb",
+  rotationAngle: number = 0,
+  deformationStrength: number = 1.0
 ): string => {
   const paths: string[] = [];
   const centerX = canvasSize / 2;
   const centerY = canvasSize / 2;
-  let dotIndex = 0;
+  const rotationAngleRad = (rotationAngle * Math.PI) / 180;
 
-  for (let i = 0; i < layers; i++) {
-    const layerRadius = (i / (layers - 1)) * (canvasSize / 2.2);
-    const circleSize = radius;
-    const circumference = 2 * Math.PI * layerRadius;
-    const circlesPerLayer = Math.max(
-      6,
-      Math.floor(circumference / (circleSize * spacingFactor))
-    );
+  if (gridType === "honeycomb") {
+    // ハニカムグリッド
+    for (let i = 0; i < layers; i++) {
+      const layerRadius = (i / (layers - 1)) * (canvasSize / 2.8);
+      const circleSize = radius;
+      const circumference = 2 * Math.PI * layerRadius;
+      const circlesPerLayer = Math.max(
+        6,
+        Math.floor(circumference / (circleSize * spacingFactor))
+      );
 
-    for (let j = 0; j < circlesPerLayer; j++) {
-      if (dotStates[dotIndex]) {
-        const angle =
-          (2 * Math.PI * j) / circlesPerLayer +
-          ((i % 2) * Math.PI) / circlesPerLayer;
-        const x = centerX + Math.cos(angle) * layerRadius;
-        const y = centerY + Math.sin(angle) * layerRadius;
+      for (let j = 0; j < circlesPerLayer; j++) {
+        const key = `${i}:${j}`;
+        if (dotStates[key]) {
+          const angle =
+            (2 * Math.PI * j) / circlesPerLayer +
+            ((i % 2) * Math.PI) / circlesPerLayer;
 
-        // 円のパスを生成
-        const r = circleSize / 2;
-        const path = `M ${x - r} ${y} A ${r} ${r} 0 1 1 ${x + r} ${y} A ${r} ${r} 0 1 1 ${
-          x - r
-        } ${y} Z`;
-        paths.push(path);
+          // 基本位置
+          const x_rel = Math.cos(angle) * layerRadius;
+          const y_rel = Math.sin(angle) * layerRadius;
+
+          // 回転を適用
+          const cos_a = Math.cos(-rotationAngleRad);
+          const sin_a = Math.sin(-rotationAngleRad);
+          const x_rot = x_rel * cos_a - y_rel * sin_a;
+          const y_rot = x_rel * sin_a + y_rel * cos_a;
+
+          // 変形を適用
+          const x_stretched = x_rot * deformationStrength;
+          const y_stretched = y_rot;
+
+          // 逆回転を適用
+          const cos_b = Math.cos(rotationAngleRad);
+          const sin_b = Math.sin(rotationAngleRad);
+          const x_final_rel = x_stretched * cos_b - y_stretched * sin_b;
+          const y_final_rel = x_stretched * sin_b + y_stretched * cos_b;
+
+          // 最終位置
+          const x = centerX + x_final_rel;
+          const y = centerY + y_final_rel;
+
+          // 円のパスを生成
+          const r = circleSize / 2;
+          const path = `M ${x - r} ${y} A ${r} ${r} 0 1 1 ${x + r} ${y} A ${r} ${r} 0 1 1 ${
+            x - r
+          } ${y} Z`;
+          paths.push(path);
+        }
       }
-      dotIndex++;
+    }
+  } else if (gridType === "rectangular") {
+    // 矩形グリッド
+    const circleSize = radius;
+    const spacing = circleSize * spacingFactor;
+    const maxRadius = canvasSize / 2.8;
+    const gridSize = Math.ceil(maxRadius * 2 / spacing) + 2;
+
+    for (let row = -gridSize; row <= gridSize; row++) {
+      for (let col = -gridSize; col <= gridSize; col++) {
+        // 基本位置
+        const x_rel = col * spacing;
+        const y_rel = row * spacing;
+
+        // 円形クロップの判定
+        const distFromCenter = Math.sqrt(x_rel * x_rel + y_rel * y_rel);
+        if (distFromCenter > maxRadius) {
+          continue;
+        }
+
+        const key = `${row}:${col}`;
+        if (dotStates[key]) {
+          // 回転を適用
+          const cos_a = Math.cos(-rotationAngleRad);
+          const sin_a = Math.sin(-rotationAngleRad);
+          const x_rot = x_rel * cos_a - y_rel * sin_a;
+          const y_rot = x_rel * sin_a + y_rel * cos_a;
+
+          // 変形を適用
+          const x_stretched = x_rot * deformationStrength;
+          const y_stretched = y_rot;
+
+          // 逆回転を適用
+          const cos_b = Math.cos(rotationAngleRad);
+          const sin_b = Math.sin(rotationAngleRad);
+          const x_final_rel = x_stretched * cos_b - y_stretched * sin_b;
+          const y_final_rel = x_stretched * sin_b + y_stretched * cos_b;
+
+          // 最終位置
+          const x = centerX + x_final_rel;
+          const y = centerY + y_final_rel;
+
+          // 円のパスを生成
+          const r = circleSize / 2;
+          const path = `M ${x - r} ${y} A ${r} ${r} 0 1 1 ${x + r} ${y} A ${r} ${r} 0 1 1 ${
+            x - r
+          } ${y} Z`;
+          paths.push(path);
+        }
+      }
     }
   }
 
@@ -994,10 +1084,13 @@ export const generateCircleSVGPath = (
 
 // Circleグリッド用のSVGファイルを生成する関数
 export const generateCircleSVG = (
-  dotStates: boolean[],
+  dotStates: Record<string, boolean>,
   layers: number,
   radius: number,
-  spacingFactor: number
+  spacingFactor: number,
+  gridType: "honeycomb" | "rectangular" = "honeycomb",
+  rotationAngle: number = 0,
+  deformationStrength: number = 1.0
 ): string => {
   // SVGのサイズを計算
   const svgSize = 800;
@@ -1007,7 +1100,10 @@ export const generateCircleSVG = (
     layers,
     radius,
     spacingFactor,
-    svgSize
+    svgSize,
+    gridType,
+    rotationAngle,
+    deformationStrength
   );
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -1024,10 +1120,11 @@ export const exportCircleToZip = async (
     spacingFactor: number;
     rotationAngle: number;
     deformationStrength: number;
-    dotStates: boolean[];
+    dotStates: Record<string, boolean>;
     canvasWidthPercent: number;
     canvasHeightPercent: number;
     zoom: number;
+    gridType: "honeycomb" | "rectangular";
   },
   exportFileName: string
 ): Promise<void> => {
@@ -1036,7 +1133,7 @@ export const exportCircleToZip = async (
   // キャンバスサイズを決定
   const canvasSize = 800;
 
-  // glyph.json の準備
+  // glyph.json の準備（circleStyleも含める）
   const glyphData: GlyphData = {
     version: "2.0.0",
     mode: "circle",
@@ -1047,6 +1144,16 @@ export const exportCircleToZip = async (
     circleData: {
       layers: state.layers,
       dotStates: state.dotStates,
+    },
+    circleStyle: {
+      radius: state.radius,
+      spacingFactor: state.spacingFactor,
+      rotationAngle: state.rotationAngle,
+      deformationStrength: state.deformationStrength,
+      canvasWidthPercent: state.canvasWidthPercent,
+      canvasHeightPercent: state.canvasHeightPercent,
+      zoom: state.zoom,
+      gridType: state.gridType,
     },
     exportDate: new Date().toISOString(),
   };
@@ -1063,6 +1170,7 @@ export const exportCircleToZip = async (
       canvasWidthPercent: state.canvasWidthPercent,
       canvasHeightPercent: state.canvasHeightPercent,
       zoom: state.zoom,
+      gridType: state.gridType,
     },
     exportDate: new Date().toISOString(),
   };
@@ -1072,7 +1180,10 @@ export const exportCircleToZip = async (
     state.dotStates,
     state.layers,
     state.radius,
-    state.spacingFactor
+    state.spacingFactor,
+    state.gridType,
+    state.rotationAngle,
+    state.deformationStrength
   );
 
   // ZIPファイルにファイルを追加
@@ -1110,7 +1221,7 @@ export const importCircleFromFilesV2 = async (
     setCanvasWidthPercent: (value: number) => void;
     setCanvasHeightPercent: (value: number) => void;
     setZoom: (value: number) => void;
-    setDotStates: (states: boolean[]) => void;
+    setDotStates: (states: Record<string, boolean>) => void;
   }
 ): Promise<void> => {
   try {
@@ -1190,7 +1301,7 @@ export const smartImportCircleMultiple = async (
     setCanvasWidthPercent: (value: number) => void;
     setCanvasHeightPercent: (value: number) => void;
     setZoom: (value: number) => void;
-    setDotStates: (states: boolean[]) => void;
+    setDotStates: (states: Record<string, boolean>) => void;
   }
 ): Promise<void> => {
   if (files.length === 2) {
